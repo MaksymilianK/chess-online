@@ -1,10 +1,10 @@
 from typing import Optional
 
 from shared.chessboard import Piece, Chessboard, on_same_line, on_same_row, within_board, \
-    is_between, SECOND_RANK, FIRST_RANK
-from shared.move import AbstractMove, Move, EnPassant, Capturing, Promotion
-from shared.position import Vector2d, distance_y, distance_x
-from shared.team import Team, Pawn, Knight, King, PieceType, PlayerPieceSet, Bishop, Rook, Queen
+    is_between, SECOND_RANK, FIRST_RANK, on_same_diagonal, unit_vector_to
+from shared.move import AbstractMove, Move, EnPassant, Capturing, Promotion, PromotionWithCapturing, Castling
+from shared.position import Vector2d, distance_y
+from shared.team import Team, Pawn, Knight, King, PieceType, Bishop, Rook, Queen
 
 
 class CheckStatus:
@@ -26,8 +26,8 @@ class CheckStatus:
 
 
 class MoveHistory:
-    def __init__(self):
-        self.moves: list[AbstractMove] = []
+    def __init__(self, moves: list[AbstractMove] = None):
+        self.moves: list[AbstractMove] = moves or []
 
     @property
     def last_move(self) -> Optional[AbstractMove]:
@@ -35,12 +35,11 @@ class MoveHistory:
 
 
 class ChessEngine:
-    def __init__(self):
-        self.pieces = {Team.WHITE: PlayerPieceSet(), Team.BLACK: PlayerPieceSet()}
-        self.board = Chessboard()
-        self.check_status = CheckStatus()
-        self.move_history = MoveHistory()
-        self.currently_moving_team = Team.WHITE
+    def __init__(self, pieces: list[Piece] = None, move_history: list[AbstractMove] = None):
+        self.move_history = MoveHistory(move_history)
+        self.board = Chessboard(pieces or _init_pieces())
+        self.currently_moving_team = self._init_currently_moving_team()
+        self.check_status = self._init_check_status()
 
     def available_moves(self, piece_at: Vector2d) -> list[AbstractMove]:
         piece = self.board.piece_at(piece_at)
@@ -62,23 +61,66 @@ class ChessEngine:
         else:
             return self._available_other_pieces_moves(piece)
 
-    def _init_pieces(self):
-        for team in Team:
-            for i in range(8):
-                self.pieces[team.value].pawns.append(Pawn(team.value, Vector2d(i, SECOND_RANK[team.value])))
+    def _init_currently_moving_team(self) -> Team:
+        if self.move_history.last_move:
+            last_moving_team = self._last_moving_piece().team
+            return Team.WHITE if last_moving_team == Team.BLACK else Team.BLACK
+        else:
+            return Team.WHITE
 
-            self.pieces[team.value].knights.append(Knight(team.value, Vector2d(1, FIRST_RANK[team.value])))
-            self.pieces[team.value].knights.append(Knight(team.value, Vector2d(6, FIRST_RANK[team.value])))
+    def _init_check_status(self) -> CheckStatus:
+        check_status = CheckStatus()
+        checking_pieces = self._checking_pieces()
+        if len(checking_pieces) == 1:
+            check_status.update_checking_pieces(checking_pieces[0])
+        elif len(checking_pieces) == 2:
+            check_status.update_checking_pieces(checking_pieces[0], checking_pieces[1])
 
-            self.pieces[team.value].bishops.append(Bishop(team.value, Vector2d(2, FIRST_RANK[team.value])))
-            self.pieces[team.value].bishops.append(Bishop(team.value, Vector2d(5, FIRST_RANK[team.value])))
+        return check_status
 
-            self.pieces[team.value].rooks.append(Rook(team.value, Vector2d(0, FIRST_RANK[team.value])))
-            self.pieces[team.value].rooks.append(Rook(team.value, Vector2d(7, FIRST_RANK[team.value])))
+    def _checking_pieces(self) -> list[Piece]:
+        checking_pieces: list[Piece] = []
+        king_pos = self.board.pieces[self.currently_moving_team].king.position
 
-            self.pieces[team.value].queens.append(Queen(team.value, Vector2d(3, FIRST_RANK[team.value])))
+        for move_vector in Knight.moves:
+            other_pos = king_pos - move_vector
+            if within_board(other_pos):
+                other_piece = self.board.piece_at(other_pos)
+                if other_piece and other_piece.type == PieceType.KNIGHT \
+                        and other_piece.team != self.currently_moving_team:
+                    checking_pieces.append(other_piece)
 
-            self.pieces[team.value].king = King(team.value, Vector2d(4, FIRST_RANK[team.value]))
+        for move_vector in Pawn.moves[self._currently_opposite_team()]:
+            other_pos = king_pos - move_vector
+            if within_board(other_pos):
+                other_piece = self.board.piece_at(other_pos)
+                if other_piece and other_piece.type == PieceType.PAWN \
+                        and other_piece.team != self.currently_moving_team:
+                    checking_pieces.append(other_piece)
+
+        for move_vector in Bishop.moves:
+            other_pos = king_pos - move_vector
+            while within_board(other_pos):
+                other_piece = self.board.piece_at(other_pos)
+                if other_piece:
+                    if other_piece.type in (PieceType.BISHOP, PieceType.QUEEN) \
+                            and other_piece.team != self.currently_moving_team:
+                        checking_pieces.append(other_piece)
+                    break
+                other_pos -= move_vector
+
+        for move_vector in Rook.moves:
+            other_pos = king_pos - move_vector
+            while within_board(other_pos):
+                other_piece = self.board.piece_at(other_pos)
+                if other_piece:
+                    if other_piece.type in (PieceType.ROOK, PieceType.QUEEN) \
+                            and other_piece.team != self.currently_moving_team:
+                        checking_pieces.append(other_piece)
+                    break
+                other_pos -= move_vector
+
+        return checking_pieces
 
     def _available_pawn_moves(self, pawn: Pawn) -> list[AbstractMove]:
         available_moves: list[AbstractMove] = []
@@ -105,10 +147,13 @@ class ChessEngine:
                 continue
 
             if self.board.piece_at(attack_pos) and self.board.piece_at(attack_pos).team != self.currently_moving_team:
-                available_moves.append(Capturing(pawn.position, attack_pos))
-            elif self._last_moving_piece().type == PieceType.PAWN and distance_y(
+                if pawn.position.y == SECOND_RANK[self._currently_opposite_team()]:
+                    available_moves.append(PromotionWithCapturing(pawn.position, attack_pos))
+                else:
+                    available_moves.append(Capturing(pawn.position, attack_pos))
+            elif self._last_moving_piece() and self._last_moving_piece().type == PieceType.PAWN and distance_y(
                     self.move_history.last_move.position_from, self.move_history.last_move.position_to) == 2 \
-                    and distance_x(self.move_history.last_move.position_to, pawn.position) == 1:
+                    and self.move_history.last_move.position_to.x == attack_pos.x:
                 available_moves.append(EnPassant(pawn.position, attack_pos, self.move_history.last_move.position_to))
 
         return available_moves
@@ -141,15 +186,32 @@ class ChessEngine:
 
         for move_vector in king.move_vectors:
             new_pos = king.position + move_vector
-            if self.board.piece_at(new_pos) and self.board.piece_at(new_pos).team == self.currently_moving_team:
+            if not within_board(new_pos) or (self.board.piece_at(new_pos)
+                                             and self.board.piece_at(new_pos).team == self.currently_moving_team):
                 continue
             elif new_pos in attacked_fields:
                 continue
 
             if self.board.piece_at(new_pos):
-                available_moves.append(Move(king.position, new_pos))
-            else:
                 available_moves.append(Capturing(king.position, new_pos))
+            else:
+                available_moves.append(Move(king.position, new_pos))
+
+        if king.has_moved or self.check_status.checked:
+            return available_moves
+
+        rooks = self.board.pieces[self.currently_moving_team].rooks
+        for rook in rooks:
+            if rook.has_moved or self.board.any_piece_between(king.position, rook.position):
+                continue
+
+            unit_vector = unit_vector_to(king.position, rook.position)
+            new_rook_pos = king.position + unit_vector
+            new_king_pos = king.position + (2 * unit_vector)
+            if new_rook_pos in attacked_fields or new_king_pos in attacked_fields:
+                continue
+
+            available_moves.append(Castling(king.position, new_king_pos, rook.position, new_rook_pos))
 
         return available_moves
 
@@ -162,9 +224,12 @@ class ChessEngine:
                 continue
 
             while within_board(new_pos):
-                if not self.check_status.checked or self._will_move_cover_king(new_pos):
+                if self.check_status.checked and not self._will_move_cover_king(new_pos) \
+                        and not self._will_capture_checking_piece(new_pos):
+                    new_pos += move_vector
                     continue
-                elif self.board.piece_at(new_pos):
+
+                if self.board.piece_at(new_pos):
                     if self.board.piece_at(new_pos).team != self.currently_moving_team:
                         available_moves.append(Capturing(piece.position, new_pos))
                     break
@@ -178,7 +243,7 @@ class ChessEngine:
         return Team.WHITE if self.currently_moving_team == Team.BLACK else Team.BLACK
 
     def _current_king_position(self):
-        return self.pieces[self.currently_moving_team].king.position
+        return self.board.pieces[self.currently_moving_team].king.position
 
     def _will_move_cover_king(self, pos_to: Vector2d) -> bool:
         return self.check_status.checking_piece_1.type != PieceType.KNIGHT \
@@ -191,38 +256,47 @@ class ChessEngine:
     def _will_move_reveal_king(self, pos_from: Vector2d, pos_to: Vector2d):
         king_pos = self._current_king_position()
 
-        if not on_same_line(king_pos, pos_from) or on_same_line(king_pos, pos_from, pos_to) \
-                or self.board.any_piece_between(king_pos, pos_from):
+        if not on_same_line(king_pos, pos_from) or on_same_line(king_pos, pos_from, pos_to):
             return False
 
         revealed_piece = self.board.next_piece_on_line(king_pos, pos_from)
+        if not revealed_piece:
+            return False
+
         if revealed_piece.type is PieceType.QUEEN:
             return True
 
         if (on_same_row(king_pos, pos_from) and revealed_piece.type is PieceType.ROOK) \
-                or revealed_piece.type is PieceType.BISHOP:
+                or (on_same_diagonal(king_pos, pos_from) and revealed_piece.type is PieceType.BISHOP):
             return True
         else:
             return False
 
     def _attacked_fields(self) -> set[Vector2d]:
-        attacked_fields = set()
-        opponent_pieces = self.pieces[self._currently_opposite_team()]
+        attacked_fields: set[Vector2d] = set()
+        opponent_pieces = self.board.pieces[self._currently_opposite_team()]
 
-        for piece in opponent_pieces.pawns + opponent_pieces.knights + [opponent_pieces.king]:
+        for piece in opponent_pieces.pawns:
             for attack_vector in piece.attack_vectors:
                 new_pos = piece.position + attack_vector
                 if within_board(new_pos) and not self.board.piece_at(new_pos):
                     attacked_fields.add(new_pos)
 
+        for piece in opponent_pieces.knights + [opponent_pieces.king]:
+            for move_vector in piece.move_vectors:
+                new_pos = piece.position + move_vector
+                if within_board(new_pos) and not self.board.piece_at(new_pos):
+                    attacked_fields.add(new_pos)
+
         for piece in opponent_pieces.bishops + opponent_pieces.rooks + opponent_pieces.queens:
-            for attack_vector in piece.attack_vectors:
-                new_pos = piece.position + attack_vector
+            for move_vector in piece.move_vectors:
+                new_pos = piece.position + move_vector
                 while within_board(new_pos):
                     attacked_fields.add(new_pos)
                     piece_at = self.board.piece_at(new_pos)
                     if piece_at and piece_at.team == self.currently_moving_team and piece_at.type != PieceType.KING:
                         break
+                    new_pos += move_vector
 
         return attacked_fields
 
@@ -231,3 +305,26 @@ class ChessEngine:
             return self.board.piece_at(self.move_history.last_move.position_to)
         else:
             return None
+
+
+def _init_pieces() -> list[Piece]:
+    pieces: list[Piece] = []
+
+    for team in (Team.WHITE, Team.BLACK):
+        for i in range(8):
+            pieces.append(Pawn(team, Vector2d(i, SECOND_RANK[team])))
+
+        pieces.append(Knight(team, Vector2d(1, FIRST_RANK[team])))
+        pieces.append(Knight(team, Vector2d(6, FIRST_RANK[team])))
+
+        pieces.append(Bishop(team, Vector2d(2, FIRST_RANK[team])))
+        pieces.append(Bishop(team, Vector2d(5, FIRST_RANK[team])))
+
+        pieces.append(Rook(team, Vector2d(0, FIRST_RANK[team])))
+        pieces.append(Rook(team, Vector2d(7, FIRST_RANK[team])))
+
+        pieces.append(Queen(team, Vector2d(3, FIRST_RANK[team])))
+
+        pieces.append(King(team, Vector2d(4, FIRST_RANK[team])))
+
+    return pieces

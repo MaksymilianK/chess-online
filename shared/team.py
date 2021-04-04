@@ -128,6 +128,38 @@ class PlayerPieceSet:
         self.queens: list[Queen] = []
         self.king: King = None
 
+    def add(self, piece: Piece):
+        if piece.type == PieceType.PAWN:
+            self.pawns.append(piece)
+        elif piece.type == PieceType.KNIGHT:
+            self.knights.append(piece)
+        elif piece.type == PieceType.BISHOP:
+            self.bishops.append(piece)
+        elif piece.type == PieceType.ROOK:
+            self.rooks.append(piece)
+        elif piece.type == PieceType.QUEEN:
+            self.queens.append(piece)
+        else:
+            self.king = piece
+
+    def remove(self, piece: Piece):
+        if piece.type == PieceType.PAWN:
+            self.pawns.remove(piece)
+        elif piece.type == PieceType.KNIGHT:
+            self.knights.remove(piece)
+        elif piece.type == PieceType.BISHOP:
+            self.bishops.remove(piece)
+        elif piece.type == PieceType.ROOK:
+            self.rooks.remove(piece)
+        elif piece.type == PieceType.QUEEN:
+            self.queens.remove(piece)
+        else:
+            raise RuntimeError("Cannot remove the king from a piece set")
+
     @property
     def all(self) -> list[Piece]:
-        return self.pawns + self.knights + self.bishops + self.rooks + self.queens + [self.king]
+        pieces = self.pawns + self.knights + self.bishops + self.rooks + self.queens
+        if self.king is not None:
+            pieces.append(self.king)
+
+        return pieces

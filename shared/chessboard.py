@@ -1,28 +1,31 @@
 from typing import Optional
 
 from shared.position import Vector2d, distance_x, distance_y
-from shared.team import Team, Piece
+from shared.team import Team, Piece, PlayerPieceSet
 
 # Chessboard 'ranks' are horizontal lines of fields.
-FIRST_RANK = {Team.WHITE: 0, Team.BLACK: 8}
-SECOND_RANK = {Team.WHITE: 1, Team.BLACK: 7}
+FIRST_RANK = {Team.WHITE: 0, Team.BLACK: 7}
+SECOND_RANK = {Team.WHITE: 1, Team.BLACK: 6}
 
 
 class Chessboard:
-    def __init__(self, pieces: list[Piece] = None):
+    def __init__(self, pieces: list[Piece]):
         self._fields = {Vector2d(i, j): None for i in range(8) for j in range(8)}
-        if pieces is not None:
-            for piece in pieces:
-                self._fields[piece.position] = piece
+        self.pieces: dict[Team, PlayerPieceSet] = {Team.WHITE: PlayerPieceSet(), Team.BLACK: PlayerPieceSet()}
+        for piece in pieces:
+            self.set_piece(piece)
 
     def piece_at(self, position: Vector2d) -> Optional[Piece]:
         return self._fields[position]
 
     def remove_piece(self, position: Vector2d):
+        piece = self.piece_at(position)
         self._fields[position] = None
+        self.pieces[piece.team].remove(piece)
 
     def set_piece(self, piece: Piece):
         self._fields[piece.position] = piece
+        self.pieces[piece.team].add(piece)
 
     def move(self, pos_from: Vector2d, pos_to: Vector2d):
         piece = self._fields[pos_from]
@@ -32,7 +35,7 @@ class Chessboard:
 
     def any_piece_between(self, pos_1: Vector2d, pos_2: Vector2d) -> bool:
         """Method assumes that pos_1 and pos_2 are on the same line."""
-        unit_vector = _unit_vector_to(pos_1, pos_2)
+        unit_vector = unit_vector_to(pos_1, pos_2)
         pos = pos_1 + unit_vector
         while pos != pos_2:
             if self.piece_at(pos) is not None:
@@ -43,8 +46,8 @@ class Chessboard:
 
     def next_piece_on_line(self, pos_1: Vector2d, pos_2: Vector2d) -> Optional[Piece]:
         """Method assumes that pos_1 and pos_2 are on the same line."""
-        unit_vector = _unit_vector_to(pos_1, pos_2)
-        pos = pos_1 + unit_vector
+        unit_vector = unit_vector_to(pos_1, pos_2)
+        pos = pos_2 + unit_vector
         while within_board(pos):
             piece = self.piece_at(pos)
             if piece is not None:
@@ -91,6 +94,11 @@ def on_same_diagonal(pos_1: Vector2d, pos_2: Vector2d) -> bool:
     return _on_same_right_up_diagonal(pos_1, pos_2) or _on_same_left_down_diagonal(pos_1, pos_2)
 
 
+def unit_vector_to(pos_1: Vector2d, pos_2: Vector2d) -> Vector2d:
+    """Returns a unit vector pointing from pos_1 to pos_2. It assumes that pos_1 and pos_2 are on the same line."""
+    return (pos_2 - pos_1) // distance(pos_1, pos_2)
+
+
 # Chessboard 'files' are vertical lines of fields.
 def _on_same_file(pos_1: Vector2d, pos_2: Vector2d) -> bool:
     return pos_1.x == pos_2.x
@@ -109,8 +117,3 @@ def _on_same_right_up_diagonal(pos_1: Vector2d, pos_2: Vector2d) -> bool:
 def _on_same_left_down_diagonal(pos_1: Vector2d, pos_2: Vector2d) -> bool:
     """Checks if pos_1 and pos_2 are on a diagonal where position with greater x has greater y."""
     return pos_1.x - pos_2.x == pos_2.y - pos_1.y
-
-
-def _unit_vector_to(pos_1: Vector2d, pos_2: Vector2d) -> Vector2d:
-    """Returns a unit vector pointing from pos_1 to pos_2. It assumes that pos_1 and pos_2 are on the same line."""
-    return (pos_2 - pos_1) // distance(pos_1, pos_2)
