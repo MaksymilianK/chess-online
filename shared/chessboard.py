@@ -1,7 +1,7 @@
 from typing import Optional
 
 from shared.position import Vector2d, distance_x, distance_y
-from shared.team import Team, Piece, PlayerPieceSet
+from shared.piece import Team, Piece, PlayerPieceSet
 
 # Chessboard 'ranks' are horizontal lines of fields.
 FIRST_RANK = {Team.WHITE: 0, Team.BLACK: 7}

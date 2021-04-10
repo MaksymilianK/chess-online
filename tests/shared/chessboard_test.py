@@ -3,7 +3,7 @@ import pytest
 from shared.chessboard import Chessboard, within_board, distance, on_same_line, is_between, on_same_row, \
     on_same_diagonal, unit_vector_to
 from shared.position import Vector2d
-from shared.team import Pawn, Team, Queen, Knight
+from shared.piece import Pawn, Team, Queen, Knight
 
 
 def test_init():

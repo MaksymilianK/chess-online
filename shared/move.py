@@ -4,7 +4,7 @@ from abc import abstractmethod, ABC
 from enum import Enum, auto
 
 from shared.position import Vector2d
-from shared.team import PieceType
+from shared.piece import PieceType
 
 
 class MoveType(Enum):

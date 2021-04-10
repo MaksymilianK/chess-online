@@ -4,7 +4,7 @@ from shared.chessboard import Piece, Chessboard, on_same_line, on_same_row, with
     is_between, SECOND_RANK, FIRST_RANK, on_same_diagonal, unit_vector_to
 from shared.move import AbstractMove, Move, EnPassant, Capturing, Promotion, PromotionWithCapturing, Castling
 from shared.position import Vector2d, distance_y
-from shared.team import Team, Pawn, Knight, King, PieceType, Bishop, Rook, Queen
+from shared.piece import Team, Pawn, Knight, King, PieceType, Bishop, Rook, Queen
 
 
 class CheckStatus:

@@ -1,7 +1,7 @@
 from shared.chess_engine import ChessEngine
 from shared.move import Move, Capturing, Promotion, PromotionWithCapturing, EnPassant, Castling
 from shared.position import Vector2d
-from shared.team import Team, Pawn, Bishop, Knight, King, Rook, Queen
+from shared.piece import Team, Pawn, Bishop, Knight, King, Rook, Queen
 
 
 def test_default_init():

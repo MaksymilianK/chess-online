@@ -1,7 +1,7 @@
 import pytest
 
 from shared.position import Vector2d
-from shared.team import Pawn, Team, Knight, Bishop, Rook, Queen, King, PlayerPieceSet
+from shared.piece import Pawn, Team, Knight, Bishop, Rook, Queen, King, PlayerPieceSet
 
 
 def test_has_moved():
