@@ -2,7 +2,7 @@ from typing import Optional
 
 from shared.chessboard import Piece, Chessboard, on_same_line, on_same_row, within_board, \
     is_between, SECOND_RANK, FIRST_RANK, on_same_diagonal, unit_vector_to
-from shared.move import AbstractMove, Move, EnPassant, Capturing, Promotion, PromotionWithCapturing, Castling
+from shared.move import AbstractMove, Move, EnPassant, Capturing, Promotion, PromotionWithCapturing, Castling, MoveType
 from shared.position import Vector2d, distance_y
 from shared.piece import Team, Pawn, Knight, King, PieceType, Bishop, Rook, Queen
 
@@ -21,7 +21,7 @@ class CheckStatus:
         return self.checking_piece_1 is not None
 
     @property
-    def double_checked(self):
+    def double_checked(self) -> bool:
         return self.checking_piece_1 is not None and self.checking_piece_2 is not None
 
 
@@ -61,6 +61,37 @@ class ChessEngine:
         else:
             return self._available_other_pieces_moves(piece)
 
+    def process_move(self, move: AbstractMove):
+        if move.type == MoveType.CAPTURING:
+            self.board.remove_piece(move.position_to)
+        elif move.type == MoveType.CASTLING:
+            self.board.move(move.rook_from, move.rook_to)
+        elif move.type == MoveType.EN_PASSANT:
+            self.board.remove_piece(move.captured_position)
+
+        if move.type == MoveType.PROMOTION:
+            self.board.remove_piece(move.position_from)
+            self.board.set_piece(move.piece_type)
+        elif move.type == MoveType.PROMOTION_WITH_CAPTURING:
+            self.board.remove_piece(move.position_to)
+            self.board.remove_piece(move.position_from)
+            self.board.set_piece(move.piece_type)
+        else:
+            self.board.move(move.position_from, move.position_to)
+
+        self.move_history.moves.append(move)
+        self.currently_moving_team = self._currently_opposite_team()
+        self._update_check_status()
+
+    def process_move_with_evaluation(self, move: AbstractMove):
+        if move not in self.available_moves(move.position_from):
+            raise Exception("Cannot make a move, because it is not valid")
+
+        self.process_move(move)
+
+    def is_checkmate(self) -> bool:
+        return self.check_status.double_checked and not self.available_moves(self._current_king_position())
+
     def _init_currently_moving_team(self) -> Team:
         if self.move_history.last_move:
             last_moving_team = self._last_moving_piece().team
@@ -77,6 +108,14 @@ class ChessEngine:
             check_status.update_checking_pieces(checking_pieces[0], checking_pieces[1])
 
         return check_status
+
+    def _update_check_status(self):
+        self.check_status.update_checking_pieces()
+        checking_pieces = self._checking_pieces()
+        if len(checking_pieces) == 1:
+            self.check_status.update_checking_pieces(checking_pieces[0])
+        elif len(checking_pieces) == 2:
+            self.check_status.update_checking_pieces(checking_pieces[0], checking_pieces[1])
 
     def _checking_pieces(self) -> list[Piece]:
         checking_pieces: list[Piece] = []
@@ -180,7 +219,7 @@ class ChessEngine:
 
         return available_moves
 
-    def _available_king_moves(self, king: King):
+    def _available_king_moves(self, king: King) -> list[AbstractMove]:
         available_moves: list[AbstractMove] = []
         attacked_fields = self._attacked_fields()
 
@@ -239,10 +278,10 @@ class ChessEngine:
 
         return available_moves
 
-    def _currently_opposite_team(self):
+    def _currently_opposite_team(self) -> Team:
         return Team.WHITE if self.currently_moving_team == Team.BLACK else Team.BLACK
 
-    def _current_king_position(self):
+    def _current_king_position(self) -> Vector2d:
         return self.board.pieces[self.currently_moving_team].king.position
 
     def _will_move_cover_king(self, pos_to: Vector2d) -> bool:
@@ -253,7 +292,7 @@ class ChessEngine:
     def _will_capture_checking_piece(self, attack_pos: Vector2d) -> bool:
         return self.check_status.checking_piece_1.position == attack_pos
 
-    def _will_move_reveal_king(self, pos_from: Vector2d, pos_to: Vector2d):
+    def _will_move_reveal_king(self, pos_from: Vector2d, pos_to: Vector2d) -> bool:
         king_pos = self._current_king_position()
 
         if not on_same_line(king_pos, pos_from) or on_same_line(king_pos, pos_from, pos_to):
