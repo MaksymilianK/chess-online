@@ -1,7 +1,7 @@
 from typing import Optional
 
 from shared.chessboard import Piece, Chessboard, on_same_line, on_same_row, within_board, \
-    is_between, SECOND_RANK, FIRST_RANK, on_same_diagonal, unit_vector_to
+    is_between, SECOND_RANK, FIRST_RANK, on_same_diagonal, unit_vector_to, on_same_color
 from shared.move import AbstractMove, Move, EnPassant, Capturing, Promotion, PromotionWithCapturing, Castling, MoveType
 from shared.position import Vector2d, distance_y
 from shared.piece import Team, Pawn, Knight, King, PieceType, Bishop, Rook, Queen
@@ -90,7 +90,50 @@ class ChessEngine:
         self.process_move(move)
 
     def is_checkmate(self) -> bool:
-        return self.check_status.double_checked and not self.available_moves(self._current_king_position())
+        return self.check_status.double_checked and not self.available_moves(self._current_king_position()) or \
+               self.check_status.checked and not [piece for piece in self.board.pieces[self.currently_moving_team].all
+                                                  if self.available_moves(piece.position)]
+
+    def is_tie(self) -> bool:
+        currently_moving_team_piece_set = self.board.pieces[self.currently_moving_team].all
+        currently_opposite_team_piece_set = self.board.pieces[self._currently_opposite_team()].all
+        currently_moving_team_piece_set_length = len(currently_moving_team_piece_set)
+        currently_opposite_team_piece_set_length = len(currently_opposite_team_piece_set)
+
+        return not self.check_status.checked and \
+               not [piece for piece in self.board.pieces[self.currently_moving_team].all
+                    if self.available_moves(piece.position)] or \
+               currently_moving_team_piece_set_length == 1 and \
+               currently_moving_team_piece_set[0].type == PieceType.KING and \
+               currently_opposite_team_piece_set_length == 1 and \
+               currently_opposite_team_piece_set[0].type == PieceType.KING or \
+               currently_moving_team_piece_set_length == 2 and \
+               currently_moving_team_piece_set[0].type == PieceType.BISHOP and \
+               currently_moving_team_piece_set[1].type == PieceType.KING and \
+               currently_opposite_team_piece_set_length == 1 and \
+               currently_opposite_team_piece_set[0].type == PieceType.KING or \
+               currently_opposite_team_piece_set_length == 2 and \
+               currently_opposite_team_piece_set[0].type == PieceType.BISHOP and \
+               currently_opposite_team_piece_set[1].type == PieceType.KING and \
+               currently_moving_team_piece_set_length == 1 and \
+               currently_moving_team_piece_set[0].type == PieceType.KING or \
+               currently_moving_team_piece_set_length == 2 and \
+               currently_moving_team_piece_set[0].type == PieceType.KNIGHT and \
+               currently_moving_team_piece_set[1].type == PieceType.KING and \
+               currently_opposite_team_piece_set_length == 1 and \
+               currently_opposite_team_piece_set[0].type == PieceType.KING or \
+               currently_opposite_team_piece_set_length == 2 and \
+               currently_opposite_team_piece_set[0].type == PieceType.KNIGHT and \
+               currently_opposite_team_piece_set[1].type == PieceType.KING and \
+               currently_moving_team_piece_set_length == 1 and \
+               currently_moving_team_piece_set[0].type == PieceType.KING or \
+               currently_moving_team_piece_set_length == 2 and \
+               currently_moving_team_piece_set[0].type == PieceType.BISHOP and \
+               currently_moving_team_piece_set[1].type == PieceType.KING and \
+               currently_opposite_team_piece_set_length == 2 and \
+               currently_opposite_team_piece_set[0].type == PieceType.BISHOP and \
+               currently_opposite_team_piece_set[1].type == PieceType.KING and \
+               on_same_color(currently_moving_team_piece_set[0].position, currently_opposite_team_piece_set[0].position)
 
     def _init_currently_moving_team(self) -> Team:
         if self.move_history.last_move:

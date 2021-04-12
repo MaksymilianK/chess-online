@@ -94,6 +94,11 @@ def on_same_diagonal(pos_1: Vector2d, pos_2: Vector2d) -> bool:
     return _on_same_right_up_diagonal(pos_1, pos_2) or _on_same_left_down_diagonal(pos_1, pos_2)
 
 
+def on_same_color(pos1: Vector2d, pos2: Vector2d) -> bool:
+    return not (pos1.x % 2 == pos1.y % 2 and pos2.x % 2 != pos2.y % 2 or
+                pos1.x % 2 != pos1.y % 2 and pos2.x % 2 == pos2.y % 2)
+
+
 def unit_vector_to(pos_1: Vector2d, pos_2: Vector2d) -> Vector2d:
     """Returns a unit vector pointing from pos_1 to pos_2. It assumes that pos_1 and pos_2 are on the same line."""
     return (pos_2 - pos_1) // distance(pos_1, pos_2)
