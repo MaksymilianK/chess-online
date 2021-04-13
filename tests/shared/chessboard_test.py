@@ -1,7 +1,7 @@
 import pytest
 
 from shared.chessboard import Chessboard, within_board, distance, on_same_line, is_between, on_same_row, \
-    on_same_diagonal, unit_vector_to
+    on_same_diagonal, on_same_color, unit_vector_to
 from shared.position import Vector2d
 from shared.piece import Pawn, Team, Queen, Knight
 
@@ -171,6 +171,16 @@ def test_on_same_diagonal():
     assert not on_same_diagonal(Vector2d(1, 5), Vector2d(1, 7))
     assert on_same_diagonal(Vector2d(1, 5), Vector2d(3, 7))
     assert on_same_diagonal(Vector2d(1, 5), Vector2d(6, 0))
+
+
+def test_on_same_color():
+    assert not on_same_color(Vector2d(2, 2), Vector2d(4, 3))
+    assert not on_same_color(Vector2d(4, 3), Vector2d(3, 3))
+    assert on_same_color(Vector2d(2, 3), Vector2d(5, 4))
+    assert on_same_color(Vector2d(2, 2), Vector2d(7, 5))
+    assert on_same_color(Vector2d(2, 2), Vector2d(6, 4))
+    assert on_same_color(Vector2d(4, 3), Vector2d(6, 5))
+    assert on_same_color(Vector2d(3, 4), Vector2d(3, 4))
 
 
 def test_unit_vector_to():
