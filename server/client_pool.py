@@ -5,12 +5,13 @@ from collections import OrderedDict
 from websockets import WebSocketServerProtocol
 
 from server.message_broker import MessageBroker
+from server.player_repo import Player
 
 
 class ClientPool:
     def __init__(self, message_broker: MessageBroker = None):
         self.anonymous: OrderedDict[WebSocketServerProtocol, int] = OrderedDict()
-        self.authenticated: set[WebSocketServerProtocol] = set()
+        self.authenticated: dict[WebSocketServerProtocol, Player] = {}
         self.message_broker = message_broker or MessageBroker()
 
     async def handle_connection(self, websocket: WebSocketServerProtocol):
@@ -22,7 +23,7 @@ class ClientPool:
             if websocket in self.anonymous:
                 self.anonymous.pop(websocket)
             else:
-                self.authenticated.remove(websocket)
+                self.authenticated.pop(websocket)
 
     async def monitor_unauthenticated(self):
         while True:
@@ -41,7 +42,7 @@ class ClientPool:
 
             await asyncio.sleep(2)
 
-    async def authenticate(self, websocket: WebSocketServerProtocol):
+    async def set_authenticated(self, websocket: WebSocketServerProtocol, player: Player):
         if websocket in self.anonymous:
             self.anonymous.pop(websocket)
-            self.authenticated.add(websocket)
+            self.authenticated[websocket] = player
