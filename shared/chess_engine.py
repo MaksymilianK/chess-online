@@ -95,45 +95,26 @@ class ChessEngine:
                                                   if self.available_moves(piece.position)]
 
     def is_tie(self) -> bool:
-        currently_moving_team_piece_set = self.board.pieces[self.currently_moving_team].all
-        currently_opposite_team_piece_set = self.board.pieces[self._currently_opposite_team()].all
-        currently_moving_team_piece_set_length = len(currently_moving_team_piece_set)
-        currently_opposite_team_piece_set_length = len(currently_opposite_team_piece_set)
+        return not self.has_sufficient_material(Team.WHITE) and not self.has_sufficient_material(Team.BLACK)
 
-        return not self.check_status.checked and \
-               not [piece for piece in self.board.pieces[self.currently_moving_team].all
-                    if self.available_moves(piece.position)] or \
-               currently_moving_team_piece_set_length == 1 and \
-               currently_moving_team_piece_set[0].type == PieceType.KING and \
-               currently_opposite_team_piece_set_length == 1 and \
-               currently_opposite_team_piece_set[0].type == PieceType.KING or \
-               currently_moving_team_piece_set_length == 2 and \
-               currently_moving_team_piece_set[0].type == PieceType.BISHOP and \
-               currently_moving_team_piece_set[1].type == PieceType.KING and \
-               currently_opposite_team_piece_set_length == 1 and \
-               currently_opposite_team_piece_set[0].type == PieceType.KING or \
-               currently_opposite_team_piece_set_length == 2 and \
-               currently_opposite_team_piece_set[0].type == PieceType.BISHOP and \
-               currently_opposite_team_piece_set[1].type == PieceType.KING and \
-               currently_moving_team_piece_set_length == 1 and \
-               currently_moving_team_piece_set[0].type == PieceType.KING or \
-               currently_moving_team_piece_set_length == 2 and \
-               currently_moving_team_piece_set[0].type == PieceType.KNIGHT and \
-               currently_moving_team_piece_set[1].type == PieceType.KING and \
-               currently_opposite_team_piece_set_length == 1 and \
-               currently_opposite_team_piece_set[0].type == PieceType.KING or \
-               currently_opposite_team_piece_set_length == 2 and \
-               currently_opposite_team_piece_set[0].type == PieceType.KNIGHT and \
-               currently_opposite_team_piece_set[1].type == PieceType.KING and \
-               currently_moving_team_piece_set_length == 1 and \
-               currently_moving_team_piece_set[0].type == PieceType.KING or \
-               currently_moving_team_piece_set_length == 2 and \
-               currently_moving_team_piece_set[0].type == PieceType.BISHOP and \
-               currently_moving_team_piece_set[1].type == PieceType.KING and \
-               currently_opposite_team_piece_set_length == 2 and \
-               currently_opposite_team_piece_set[0].type == PieceType.BISHOP and \
-               currently_opposite_team_piece_set[1].type == PieceType.KING and \
-               on_same_color(currently_moving_team_piece_set[0].position, currently_opposite_team_piece_set[0].position)
+    def has_sufficient_material(self, team: Team) -> bool:
+        other_team = Team.WHITE if team == Team.BLACK else Team.BLACK
+
+        pieces = self.board.pieces[team]
+        opposite_pieces = self.board.pieces[other_team]
+        pieces_len = len(pieces.all)
+        opposite_pieces_len = len(opposite_pieces.all)
+
+        if pieces_len == 1:
+            return False
+        elif pieces_len == 2:
+            if len(pieces.knights) == 1:
+                return False
+            elif len(pieces.bishops) == 1 and opposite_pieces_len == 1 and len(opposite_pieces.bishops) == 1 \
+                    and on_same_color(pieces.bishops[0].position, opposite_pieces.bishops[0].position):
+                return False
+
+        return True
 
     def _init_currently_moving_team(self) -> Team:
         if self.move_history.last_move:
