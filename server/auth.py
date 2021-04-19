@@ -1,37 +1,14 @@
 import re
 from typing import Optional
 
-from argon2 import PasswordHasher
+import argon2
 
+from server.errors import InvalidRequestError, NickTakenError, EmailTakenError, EmailNotFoundError, WrongPasswordError
 from server.player_repo import PlayerRepository, PlayerModel
 
 DEFAULT_ELO = 1000
-NICK_REGEX = re.compile("\\w{3,16}")
-EMAIL_REGEX = re.compile(".{1,50}@.{1,25}")
-
-
-class NickConflictException(Exception):
-    pass
-
-
-class EmailConflictException(Exception):
-    pass
-
-
-class ValidationException(Exception):
-    pass
-
-
-class FormStructureException(Exception):
-    pass
-
-
-class NotFoundException(Exception):
-    pass
-
-
-class AuthenticationException(Exception):
-    pass
+NICK_REGEX = re.compile("^\\w{3,16}$")
+EMAIL_REGEX = re.compile("^.{1,50}@.{1,25}\\..{1,25}$")
 
 
 class Player:
@@ -41,27 +18,33 @@ class Player:
 
 
 class AuthService:
-    def __init__(self, player_repo: PlayerRepository, password_hasher: PasswordHasher):
+    def __init__(self, player_repo: PlayerRepository, password_hasher=argon2.PasswordHasher()):
         self._player_repo = player_repo
         self._password_hasher = password_hasher
 
-    def create_account(self, player_form: dict) -> Optional[Player]:
-        try:
-            nick = player_form["nick"]
-            email = player_form["email"]
-            password = player_form["password"]
-        except KeyError:
-            raise FormStructureException("Missing form fields")
+    async def sign_up(self, data: dict) -> Optional[Player]:
+        if "nick" not in data:
+            raise InvalidRequestError("Missing nick")
+        elif "email" not in data:
+            raise InvalidRequestError("Missing email")
+        elif "password" not in data:
+            raise InvalidRequestError("Missing password")
 
-        if not nick_valid(nick) or not email_valid(email) or not password_valid(password):
-            raise ValidationException("Nick or email is invalid")
+        nick = data["nick"]
+        email = data["email"]
+        password = data["password"]
+
+        if not nick_valid(nick):
+            raise InvalidRequestError("Nick is invalid")
+        elif not email_valid(email):
+            raise InvalidRequestError("Email is invalid")
 
         if await self._player_repo.exists_with_nick(nick):
-            raise NickConflictException("Given nick is already taken")
+            raise NickTakenError("Nick is already taken")
         elif await self._player_repo.exists_with_email(email):
-            raise EmailConflictException("Given email is already taken")
+            raise EmailTakenError("Email is already taken")
 
-        self._player_repo.insert_one(
+        await self._player_repo.insert_one(
             PlayerModel(
                 nick,
                 DEFAULT_ELO,
@@ -72,23 +55,34 @@ class AuthService:
 
         return Player(nick, DEFAULT_ELO)
 
-    def authenticate(self, email: str, password: str) -> Player:
+    async def sign_in(self, data: dict) -> Player:
+        if "email" not in data:
+            raise InvalidRequestError("Missing email")
+        elif "password" not in data:
+            raise InvalidRequestError("Missing password")
+
+        email = data["email"]
+        password = data["password"]
+
+        if not email_valid(email):
+            raise InvalidRequestError("Email is invalid")
+
         model = await self._player_repo.find_one_by_email(email)
         if model is None:
-            raise NotFoundException("A player with the given email does not exist")
+            raise EmailNotFoundError("Player with the given email does not exist")
 
         if not self._password_hasher.verify(model.password_hash, password):
-            raise AuthenticationException("Password is wrong")
+            raise WrongPasswordError("Password is wrong")
 
         return Player(model.nick, model.elo)
 
 
 def nick_valid(nick: str) -> bool:
-    return NICK_REGEX.fullmatch(nick) is not None
+    return NICK_REGEX.match(nick) is not None
 
 
 def email_valid(email: str) -> bool:
-    return EMAIL_REGEX.fullmatch(email) is not None
+    return EMAIL_REGEX.match(email) is not None
 
 
 def password_valid(password: str) -> bool:

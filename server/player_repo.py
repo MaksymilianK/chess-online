@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import Optional
 from motor.core import AgnosticCollection
-from server.db import DBConnection
+from server.database import DBConnection
 
 
 class PlayerModel:
@@ -14,11 +14,10 @@ class PlayerModel:
 
 class PlayerRepository:
     def __init__(self, conn: DBConnection):
-        conn.db.create_collection()
         self._collection: AgnosticCollection = conn.db["players"]
 
     async def find_one_by_email(self, email: str) -> Optional[PlayerModel]:
-        doc = await self._collection.db.find_one({"email": email})
+        doc = await self._collection.find_one({"email": email})
         if doc is None:
             return None
         else:
