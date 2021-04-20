@@ -1,9 +1,12 @@
+import json
 import re
 from typing import Optional
 
 import argon2
+from websockets import WebSocketServerProtocol
 
 from server.errors import InvalidRequestError, NickTakenError, EmailTakenError, EmailNotFoundError, WrongPasswordError
+from server.message_codes import LOGIN_SUCCESS
 from server.player_repo import PlayerRepository, PlayerModel
 
 DEFAULT_ELO = 1000
@@ -22,7 +25,7 @@ class AuthService:
         self._player_repo = player_repo
         self._password_hasher = password_hasher
 
-    async def sign_up(self, data: dict) -> Optional[Player]:
+    async def sign_up(self, data: dict, websocket: WebSocketServerProtocol) -> (dict, Optional[Player]):
         if "nick" not in data:
             raise InvalidRequestError("Missing nick")
         elif "email" not in data:
@@ -53,9 +56,14 @@ class AuthService:
             )
         )
 
-        return Player(nick, DEFAULT_ELO)
+        await websocket.send(json.dumps({
+                "code": LOGIN_SUCCESS,
+                "nick": nick,
+                "elo": DEFAULT_ELO
+        }))
+        return Player(nick, DEFAULT_ELO),
 
-    async def sign_in(self, data: dict) -> Player:
+    async def sign_in(self, data: dict, websocket: WebSocketServerProtocol) -> Player:
         if "email" not in data:
             raise InvalidRequestError("Missing email")
         elif "password" not in data:
@@ -74,6 +82,11 @@ class AuthService:
         if not self._password_hasher.verify(model.password_hash, password):
             raise WrongPasswordError("Password is wrong")
 
+        await websocket.send(json.dumps({
+            "code": LOGIN_SUCCESS,
+            "nick": model.nick,
+            "elo": model.elo
+        }))
         return Player(model.nick, model.elo)
 
 

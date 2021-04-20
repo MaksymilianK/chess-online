@@ -6,9 +6,7 @@ from websockets import WebSocketServerProtocol
 
 from server.auth import Player
 from server.message_broker import MessageBroker
-
-
-LOGIN_TIME_EXCEEDED = 4500
+from server.errors import LOGIN_TIME_EXCEEDED
 
 
 class ConnectionPool:
@@ -35,7 +33,7 @@ class ConnectionPool:
 
             # Cannot delete entries from a dictionary while iterating over it, therefore two loops are necessary
             for client, conn_time in self._anonymous.items():
-                if now - conn_time < 10:
+                if now - conn_time > 10:
                     to_del.append(client)
                 else:
                     break

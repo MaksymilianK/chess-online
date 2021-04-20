@@ -6,14 +6,7 @@ from websockets import WebSocketServerProtocol
 from server.auth import Player, AuthService
 from server.errors import InvalidRequestError, EmailTakenError, EmailNotFoundError, WrongPasswordError, \
     NickTakenError, INVALID_REQUEST, EMAIL_TAKEN, EMAIL_NOT_FOUND, WRONG_PASSWORD
-
-
-SIGN_UP: int = 1
-SIGN_IN: int = 2
-JOIN_RANKED: int = 3
-CREATE_PRIVATE: int = 4
-JOIN_PRIVATE: int = 5
-GAME_INTERNAL: int = 6
+from server.message_codes import SIGN_UP, SIGN_IN
 
 
 def _parse_message(message_str: str):
@@ -39,9 +32,9 @@ class MessageBroker:
             code = message["code"]
 
             if code == SIGN_UP:
-                return await self._auth_service.sign_up(message)
+                return await self._auth_service.sign_up(message, websocket)
             elif code == SIGN_IN:
-                return await self._auth_service.sign_in(message)
+                return await self._auth_service.sign_in(message, websocket)
             else:
                 raise InvalidRequestError("Message not allowed")
 
