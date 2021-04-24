@@ -45,8 +45,11 @@ class MoveHistory:
         self._board_snapshots: DefaultDict[BoardSnapshot, int] = defaultdict(int)
         self._last_snapshot: Optional[BoardSnapshot] = None
 
-    def add_new(self, move: AbstractMove, board_snapshot: BoardSnapshot):
+    def update(self, move: AbstractMove, board_snapshot: BoardSnapshot):
         self._moves.append(move)
+        self.add_snapshot(board_snapshot)
+
+    def add_snapshot(self, board_snapshot: BoardSnapshot):
         self._board_snapshots[board_snapshot] += 1
         self._last_snapshot = board_snapshot
 

@@ -300,8 +300,8 @@ def test_knight_available_moves_double_checked():
 
 def test_bishop_available_moves_not_checked():
     pieces = [
-        Pawn(Team.WHITE, Vector2d(6, 3)),
-        Pawn(Team.WHITE, Vector2d(7, 3)),
+        Pawn(Team.WHITE, Vector2d(6, 3), has_moved=True),
+        Pawn(Team.WHITE, Vector2d(7, 3), has_moved=True),
         Bishop(Team.WHITE, Vector2d(0, 3)),
         Queen(Team.WHITE, Vector2d(6, 7)),
         King(Team.WHITE, Vector2d(3, 0)),
@@ -338,8 +338,8 @@ def test_bishop_available_moves_not_checked():
 
 def test_bishop_available_moves_single_checked():
     pieces = [
-        Pawn(Team.WHITE, Vector2d(6, 3)),
-        Pawn(Team.WHITE, Vector2d(7, 3)),
+        Pawn(Team.WHITE, Vector2d(6, 3), has_moved=True),
+        Pawn(Team.WHITE, Vector2d(7, 3), has_moved=True),
         Rook(Team.WHITE, Vector2d(4, 0)),
         Queen(Team.WHITE, Vector2d(6, 7)),
         King(Team.WHITE, Vector2d(3, 0)),
@@ -368,8 +368,8 @@ def test_bishop_available_moves_single_checked():
 
 def test_bishop_available_moves_double_checked():
     pieces = [
-        Pawn(Team.WHITE, Vector2d(6, 3)),
-        Pawn(Team.WHITE, Vector2d(7, 3)),
+        Pawn(Team.WHITE, Vector2d(6, 3), has_moved=True),
+        Pawn(Team.WHITE, Vector2d(7, 3), has_moved=True),
         Bishop(Team.WHITE, Vector2d(2, 5)),
         Rook(Team.WHITE, Vector2d(4, 0)),
         Queen(Team.WHITE, Vector2d(6, 7)),
@@ -622,8 +622,8 @@ def test_no_castling_available():
 
 def test_king_available_moves_not_checked():
     pieces = [
-        Pawn(Team.WHITE, Vector2d(4, 5)),
-        Rook(Team.WHITE, Vector2d(5, 5)),
+        Pawn(Team.WHITE, Vector2d(4, 5), has_moved=True),
+        Rook(Team.WHITE, Vector2d(5, 5), has_moved=True),
         King(Team.WHITE, Vector2d(4, 0)),
         Rook(Team.BLACK, Vector2d(0, 7), has_moved=False),
         Rook(Team.BLACK, Vector2d(7, 7), has_moved=False),
@@ -757,9 +757,9 @@ def test_processing_castling_updating_pieces():
 
 def test_processing_en_passant_updating_pieces():
     pieces = [
-        Pawn(Team.WHITE, Vector2d(0, 1)),
+        Pawn(Team.WHITE, Vector2d(0, 1), has_moved=False),
         King(Team.WHITE, Vector2d(4, 0)),
-        Pawn(Team.BLACK, Vector2d(1, 1)),
+        Pawn(Team.BLACK, Vector2d(1, 1), has_moved=True),
         King(Team.BLACK, Vector2d(4, 7))
     ]
 
@@ -784,7 +784,7 @@ def test_processing_en_passant_updating_pieces():
 
 def test_promotion_updating_pieces():
     pieces = [
-        Pawn(Team.WHITE, Vector2d(1, 6)),
+        Pawn(Team.WHITE, Vector2d(1, 6), has_moved=True),
         King(Team.WHITE, Vector2d(4, 0)),
         King(Team.BLACK, Vector2d(4, 7))
     ]
@@ -814,7 +814,7 @@ def test_promotion_with_capturing():
     pieces = [
         Queen(Team.WHITE, Vector2d(2, 0)),
         King(Team.WHITE, Vector2d(4, 0)),
-        Pawn(Team.BLACK, Vector2d(1, 1)),
+        Pawn(Team.BLACK, Vector2d(1, 1), has_moved=True),
         King(Team.BLACK, Vector2d(4, 7))
     ]
 
@@ -859,7 +859,7 @@ def test_processing_move_single_check():
 
 def test_processing_capturing_double_check():
     pieces = [
-        Pawn(Team.WHITE, Vector2d(2, 2)),
+        Pawn(Team.WHITE, Vector2d(2, 2), has_moved=True),
         King(Team.WHITE, Vector2d(4, 0)),
         Queen(Team.BLACK, Vector2d(4, 5)),
         Bishop(Team.BLACK, Vector2d(4, 4)),
@@ -880,7 +880,7 @@ def test_processing_capturing_double_check():
 
 def test_processing_promotion_single_check():
     pieces = [
-        Pawn(Team.WHITE, Vector2d(2, 6)),
+        Pawn(Team.WHITE, Vector2d(2, 6), has_moved=True),
         King(Team.WHITE, Vector2d(4, 0)),
         King(Team.BLACK, Vector2d(4, 7))
     ]
@@ -898,11 +898,11 @@ def test_processing_promotion_single_check():
 
 def test_processing_en_passant_double_check():
     pieces = [
-        Pawn(Team.WHITE, Vector2d(4, 4)),
+        Pawn(Team.WHITE, Vector2d(4, 4), has_moved=True),
         Bishop(Team.WHITE, Vector2d(7, 6)),
         Queen(Team.WHITE, Vector2d(4, 7)),
         King(Team.WHITE, Vector2d(4, 0)),
-        Pawn(Team.BLACK, Vector2d(5, 4)),
+        Pawn(Team.BLACK, Vector2d(5, 4), has_moved=True),
         King(Team.BLACK, Vector2d(4, 3))
     ]
 
@@ -916,3 +916,123 @@ def test_processing_en_passant_double_check():
     assert engine.check_status.checking_piece_1 in (pieces[1], pieces[2])
     assert engine.check_status.checking_piece_2 in (pieces[1], pieces[2])
     assert engine.check_status.checking_piece_1 != engine.check_status.checking_piece_2
+
+
+def test_processing_move_repetition():
+    pieces = [
+        Bishop(Team.WHITE, Vector2d(3, 3)),
+        King(Team.WHITE, Vector2d(4, 0)),
+        Knight(Team.BLACK, Vector2d(6, 6)),
+        King(Team.BLACK, Vector2d(4, 7))
+    ]
+
+    engine = ChessEngine(pieces, [])
+
+    engine.process_move(Move(Vector2d(3, 3), Vector2d(4, 4)))
+    assert not engine.move_history.repeated_three_times()
+    assert not engine.move_history.repeated_five_times()
+    engine.process_move(Move(Vector2d(6, 6), Vector2d(5, 4)))
+    assert not engine.move_history.repeated_three_times()
+    assert not engine.move_history.repeated_five_times()
+    engine.process_move(Move(Vector2d(4, 4), Vector2d(3, 3)))
+    assert not engine.move_history.repeated_three_times()
+    assert not engine.move_history.repeated_five_times()
+    engine.process_move(Move(Vector2d(5, 4), Vector2d(6, 6)))
+    assert not engine.move_history.repeated_three_times()
+    assert not engine.move_history.repeated_five_times()
+    engine.process_move(Move(Vector2d(3, 3), Vector2d(4, 4)))
+    assert not engine.move_history.repeated_three_times()
+    assert not engine.move_history.repeated_five_times()
+    engine.process_move(Move(Vector2d(6, 6), Vector2d(5, 4)))
+    assert not engine.move_history.repeated_three_times()
+    assert not engine.move_history.repeated_five_times()
+    engine.process_move(Move(Vector2d(4, 4), Vector2d(3, 3)))
+    assert not engine.move_history.repeated_three_times()
+    assert not engine.move_history.repeated_five_times()
+    engine.process_move(Move(Vector2d(5, 4), Vector2d(6, 6)))
+    assert engine.move_history.repeated_three_times()
+    assert not engine.move_history.repeated_five_times()
+    engine.process_move(Move(Vector2d(3, 3), Vector2d(2, 2)))
+    assert not engine.move_history.repeated_three_times()
+    assert not engine.move_history.repeated_five_times()
+    engine.process_move(Move(Vector2d(6, 6), Vector2d(7, 4)))
+    assert not engine.move_history.repeated_three_times()
+    assert not engine.move_history.repeated_five_times()
+    engine.process_move(Move(Vector2d(2, 2), Vector2d(3, 3)))
+    assert not engine.move_history.repeated_three_times()
+    assert not engine.move_history.repeated_five_times()
+    engine.process_move(Move(Vector2d(7, 4), Vector2d(6, 6)))
+    assert engine.move_history.repeated_three_times()
+    assert not engine.move_history.repeated_five_times()
+    engine.process_move(Move(Vector2d(3, 3), Vector2d(2, 2)))
+    assert not engine.move_history.repeated_three_times()
+    assert not engine.move_history.repeated_five_times()
+    engine.process_move(Move(Vector2d(6, 6), Vector2d(5, 4)))
+    assert not engine.move_history.repeated_three_times()
+    assert not engine.move_history.repeated_five_times()
+    engine.process_move(Move(Vector2d(2, 2), Vector2d(3, 3)))
+    assert engine.move_history.repeated_three_times()
+    assert not engine.move_history.repeated_five_times()
+    engine.process_move(Move(Vector2d(5, 4), Vector2d(6, 6)))
+    assert engine.move_history.repeated_three_times()
+    assert engine.move_history.repeated_five_times()
+    engine.process_move(Move(Vector2d(3, 3), Vector2d(2, 2)))
+    assert engine.move_history.repeated_three_times()
+    assert not engine.move_history.repeated_five_times()
+    engine.process_move(Move(Vector2d(6, 6), Vector2d(5, 4)))
+    assert not engine.move_history.repeated_three_times()
+    assert not engine.move_history.repeated_five_times()
+    engine.process_move(Move(Vector2d(2, 2), Vector2d(3, 3)))
+    assert engine.move_history.repeated_three_times()
+    assert not engine.move_history.repeated_five_times()
+    engine.process_move(Move(Vector2d(5, 4), Vector2d(6, 6)))
+    assert engine.move_history.repeated_three_times()
+    assert engine.move_history.repeated_five_times()
+    engine.process_move(Move(Vector2d(3, 3), Vector2d(1, 1)))
+    assert not engine.move_history.repeated_three_times()
+    assert not engine.move_history.repeated_five_times()
+    engine.process_move(Move(Vector2d(6, 6), Vector2d(5, 4)))
+    assert not engine.move_history.repeated_three_times()
+    assert not engine.move_history.repeated_five_times()
+
+
+def test_processing_move_repetition_different_castle_rights():
+    pieces = [
+        Rook(Team.WHITE, Vector2d(0, 0)),
+        King(Team.WHITE, Vector2d(4, 0)),
+        King(Team.BLACK, Vector2d(4, 7))
+    ]
+
+    engine = ChessEngine(pieces, [])
+
+    engine.process_move(Move(Vector2d(0, 0), Vector2d(0, 1)))
+    assert not engine.move_history.repeated_three_times()
+    assert not engine.move_history.repeated_five_times()
+    engine.process_move(Move(Vector2d(4, 7), Vector2d(3, 7)))
+    assert not engine.move_history.repeated_three_times()
+    assert not engine.move_history.repeated_five_times()
+    engine.process_move(Move(Vector2d(0, 1), Vector2d(0, 0)))
+    assert not engine.move_history.repeated_three_times()
+    assert not engine.move_history.repeated_five_times()
+    engine.process_move(Move(Vector2d(3, 7), Vector2d(4, 7)))
+    assert not engine.move_history.repeated_three_times()
+    assert not engine.move_history.repeated_five_times()
+    engine.process_move(Move(Vector2d(0, 0), Vector2d(0, 1)))
+    assert not engine.move_history.repeated_three_times()
+    assert not engine.move_history.repeated_five_times()
+    engine.process_move(Move(Vector2d(4, 7), Vector2d(3, 7)))
+    assert not engine.move_history.repeated_three_times()
+    assert not engine.move_history.repeated_five_times()
+    engine.process_move(Move(Vector2d(0, 1), Vector2d(0, 0)))
+    assert not engine.move_history.repeated_three_times()
+    assert not engine.move_history.repeated_five_times()
+    engine.process_move(Move(Vector2d(3, 7), Vector2d(4, 7)))
+    pieces[0].has_moved = False
+    assert not engine.move_history.repeated_three_times()
+    assert not engine.move_history.repeated_five_times()
+    engine.process_move(Move(Vector2d(0, 0), Vector2d(0, 1)))
+    assert engine.move_history.repeated_three_times()
+    assert not engine.move_history.repeated_five_times()
+    engine.process_move(Move(Vector2d(4, 7), Vector2d(3, 7)))
+    assert engine.move_history.repeated_three_times()
+    assert not engine.move_history.repeated_five_times()

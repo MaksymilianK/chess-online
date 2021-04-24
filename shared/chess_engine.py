@@ -32,6 +32,7 @@ class ChessEngine:
         self.board = Chessboard(pieces or _init_pieces())
         self.currently_moving_team = self._init_currently_moving_team()
         self.check_status = self._init_check_status()
+        self.move_history.add_snapshot(self._board_snapshot())
 
     def available_moves(self, piece_at: Vector2d) -> list[AbstractMove]:
         piece = self.board.piece_at(piece_at)
@@ -80,13 +81,7 @@ class ChessEngine:
             self.board.move(move.position_from, move.position_to)
 
         self.currently_moving_team = self._currently_opposite_team()
-        board_snapshot = BoardSnapshot(
-            {p.position: p.type for p in self.board.pieces[Team.WHITE].all + self.board.pieces[Team.BLACK].all},
-            self.currently_moving_team,
-            self._castle_rights(),
-            self._en_passant_available()
-        )
-        self.move_history.add_new(move, board_snapshot)
+        self.move_history.update(move, self._board_snapshot())
         self._update_check_status()
 
     def process_move_with_evaluation(self, move: AbstractMove):
@@ -121,6 +116,14 @@ class ChessEngine:
                 return False
 
         return True
+
+    def _board_snapshot(self):
+        return BoardSnapshot(
+            {p.position: p.type for p in self.board.pieces[Team.WHITE].all + self.board.pieces[Team.BLACK].all},
+            self.currently_moving_team,
+            self._castle_rights(),
+            self._en_passant_available()
+        )
 
     def _init_currently_moving_team(self) -> Team:
         if self.move_history.last_move:
