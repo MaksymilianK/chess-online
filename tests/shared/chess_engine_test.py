@@ -1,7 +1,7 @@
 from shared.chess_engine import ChessEngine
 from shared.move import Move, Capturing, Promotion, PromotionWithCapturing, EnPassant, Castling
 from shared.position import Vector2d
-from shared.piece import Team, Pawn, Bishop, Knight, King, Rook, Queen
+from shared.piece import Team, Pawn, Bishop, Knight, King, Rook, Queen, PieceType
 
 
 def test_default_init():
@@ -681,3 +681,238 @@ def test_king_available_moves_double_checked():
     assert Move(Vector2d(4, 7), Vector2d(3, 7)) in moves
     assert Move(Vector2d(4, 7), Vector2d(5, 7)) in moves
     assert Capturing(Vector2d(4, 7), Vector2d(4, 6)) in moves
+
+
+def test_processing_move_updating_pieces():
+    pieces = [
+        Rook(Team.WHITE, Vector2d(0, 0)),
+        King(Team.WHITE, Vector2d(4, 0)),
+        King(Team.BLACK, Vector2d(4, 7))
+    ]
+
+    engine = ChessEngine(pieces, [Move(Vector2d(3, 7), Vector2d(4, 7))])
+
+    move = Move(Vector2d(0, 0), Vector2d(0, 6))
+    engine.process_move(move)
+
+    assert engine.board.piece_at(Vector2d(0, 0)) is None
+    assert engine.board.piece_at(Vector2d(0, 6)) is pieces[0]
+    assert engine.board.piece_at(Vector2d(4, 0)) is pieces[1]
+    assert engine.board.piece_at(Vector2d(4, 7)) is pieces[2]
+    assert pieces[0].position == Vector2d(0, 6)
+    assert pieces[1].position == Vector2d(4, 0)
+    assert pieces[2].position == Vector2d(4, 7)
+    assert len(engine.board.pieces[Team.WHITE].rooks) == 1
+    assert engine.board.pieces[Team.WHITE].king is not None
+    assert engine.board.pieces[Team.BLACK].king is not None
+
+
+def test_processing_capturing_updating_pieces():
+    pieces = [
+        Rook(Team.WHITE, Vector2d(0, 0)),
+        King(Team.WHITE, Vector2d(4, 0)),
+        Rook(Team.BLACK, Vector2d(0, 6)),
+        King(Team.BLACK, Vector2d(4, 7))
+    ]
+
+    engine = ChessEngine(pieces, [Capturing(Vector2d(3, 7), Vector2d(4, 7))])
+
+    capturing = Capturing(Vector2d(0, 0), Vector2d(0, 6))
+    engine.process_move(capturing)
+
+    assert engine.board.piece_at(Vector2d(0, 0)) is None
+    assert engine.board.piece_at(Vector2d(0, 6)) is pieces[0]
+    assert engine.board.piece_at(Vector2d(4, 0)) is pieces[1]
+    assert engine.board.piece_at(Vector2d(4, 7)) is pieces[3]
+    assert pieces[0].position == Vector2d(0, 6)
+    assert pieces[1].position == Vector2d(4, 0)
+    assert pieces[3].position == Vector2d(4, 7)
+    assert len(engine.board.pieces[Team.WHITE].rooks) == 1
+    assert engine.board.pieces[Team.WHITE].king is not None
+    assert len(engine.board.pieces[Team.BLACK].rooks) == 0
+    assert engine.board.pieces[Team.BLACK].king is not None
+
+
+def test_processing_castling_updating_pieces():
+    pieces = [
+        Rook(Team.WHITE, Vector2d(0, 0)),
+        King(Team.WHITE, Vector2d(4, 0)),
+        King(Team.BLACK, Vector2d(4, 7))
+    ]
+
+    engine = ChessEngine(pieces, [])
+
+    castling = Castling(Vector2d(4, 0), Vector2d(2, 0), Vector2d(0, 0), Vector2d(3, 0))
+    engine.process_move(castling)
+
+    assert engine.board.piece_at(Vector2d(0, 0)) is None
+    assert engine.board.piece_at(Vector2d(4, 0)) is None
+    assert engine.board.piece_at(Vector2d(3, 0)) is pieces[0]
+    assert engine.board.piece_at(Vector2d(2, 0)) is pieces[1]
+    assert pieces[0].position == Vector2d(3, 0)
+    assert pieces[1].position == Vector2d(2, 0)
+    assert engine.board.pieces[Team.WHITE].king is not None
+    assert engine.board.pieces[Team.BLACK].king is not None
+
+
+def test_processing_en_passant_updating_pieces():
+    pieces = [
+        Pawn(Team.WHITE, Vector2d(0, 1)),
+        King(Team.WHITE, Vector2d(4, 0)),
+        Pawn(Team.BLACK, Vector2d(1, 1)),
+        King(Team.BLACK, Vector2d(4, 7))
+    ]
+
+    engine = ChessEngine(pieces, [Move(Vector2d(1, 3), Vector2d(1, 1))])
+
+    en_passant = EnPassant(Vector2d(0, 1), Vector2d(1, 2), Vector2d(1, 1))
+    engine.process_move(en_passant)
+
+    assert engine.board.piece_at(Vector2d(0, 1)) is None
+    assert engine.board.piece_at(Vector2d(1, 1)) is None
+    assert engine.board.piece_at(Vector2d(1, 2)) is pieces[0]
+    assert engine.board.piece_at(Vector2d(4, 0)) is pieces[1]
+    assert engine.board.piece_at(Vector2d(4, 7)) is pieces[3]
+    assert pieces[0].position == Vector2d(1, 2)
+    assert pieces[1].position == Vector2d(4, 0)
+    assert pieces[3].position == Vector2d(4, 7)
+    assert len(engine.board.pieces[Team.WHITE].pawns) == 1
+    assert engine.board.pieces[Team.WHITE].king is not None
+    assert len(engine.board.pieces[Team.BLACK].pawns) == 0
+    assert engine.board.pieces[Team.BLACK].king is not None
+
+
+def test_promotion_updating_pieces():
+    pieces = [
+        Pawn(Team.WHITE, Vector2d(1, 6)),
+        King(Team.WHITE, Vector2d(4, 0)),
+        King(Team.BLACK, Vector2d(4, 7))
+    ]
+
+    engine = ChessEngine(pieces, [])
+
+    promotion = Promotion(Vector2d(1, 6), Vector2d(1, 7), piece_type=PieceType.BISHOP)
+    engine.process_move(promotion)
+
+    new_piece = engine.board.piece_at(Vector2d(1, 7))
+    assert new_piece is not None
+    assert new_piece.team == Team.WHITE
+    assert new_piece.type == PieceType.BISHOP
+    assert engine.board.piece_at(Vector2d(1, 6)) is None
+    assert engine.board.piece_at(Vector2d(4, 0)) is pieces[1]
+    assert engine.board.piece_at(Vector2d(4, 7)) is pieces[2]
+    assert new_piece.position == Vector2d(1, 7)
+    assert pieces[1].position == Vector2d(4, 0)
+    assert pieces[2].position == Vector2d(4, 7)
+    assert len(engine.board.pieces[Team.WHITE].pawns) == 0
+    assert engine.board.pieces[Team.WHITE].king is not None
+    assert len(engine.board.pieces[Team.BLACK].pawns) == 0
+    assert engine.board.pieces[Team.BLACK].king is not None
+
+
+def test_promotion_with_capturing():
+    pieces = [
+        Queen(Team.WHITE, Vector2d(2, 0)),
+        King(Team.WHITE, Vector2d(4, 0)),
+        Pawn(Team.BLACK, Vector2d(1, 1)),
+        King(Team.BLACK, Vector2d(4, 7))
+    ]
+
+    engine = ChessEngine(pieces, [Capturing(Vector2d(3, 0), Vector2d(2, 0))])
+
+    promotion_with_capturing = PromotionWithCapturing(Vector2d(1, 1), Vector2d(2, 0), piece_type=PieceType.KNIGHT)
+    engine.process_move(promotion_with_capturing)
+
+    new_piece = engine.board.piece_at(Vector2d(2, 0))
+    assert new_piece is not None
+    assert new_piece.position == Vector2d(2, 0)
+    assert new_piece.team == Team.BLACK
+    assert new_piece.type == PieceType.KNIGHT
+    assert engine.board.piece_at(Vector2d(1, 1)) is None
+    assert engine.board.piece_at(Vector2d(4, 0)) is pieces[1]
+    assert engine.board.piece_at(Vector2d(4, 7)) is pieces[3]
+    assert new_piece.position == Vector2d(2, 0)
+    assert pieces[1].position == Vector2d(4, 0)
+    assert pieces[3].position == Vector2d(4, 7)
+    assert len(engine.board.pieces[Team.WHITE].pawns) == 0
+    assert engine.board.pieces[Team.WHITE].king is not None
+    assert len(engine.board.pieces[Team.BLACK].pawns) == 0
+    assert engine.board.pieces[Team.BLACK].king is not None
+
+
+def test_processing_move_single_check():
+    pieces = [
+        King(Team.WHITE, Vector2d(4, 0)),
+        Knight(Team.BLACK, Vector2d(2, 4)),
+        King(Team.BLACK, Vector2d(4, 7))
+    ]
+
+    engine = ChessEngine(pieces, [Move(Vector2d(3, 0), Vector2d(4, 0))])
+
+    move = Move(Vector2d(2, 4), Vector2d(3, 2))
+    engine.process_move(move)
+
+    assert engine.check_status.checked
+    assert not engine.check_status.double_checked
+    assert engine.check_status.checking_piece_1 == pieces[1]
+
+
+def test_processing_capturing_double_check():
+    pieces = [
+        Pawn(Team.WHITE, Vector2d(2, 2)),
+        King(Team.WHITE, Vector2d(4, 0)),
+        Queen(Team.BLACK, Vector2d(4, 5)),
+        Bishop(Team.BLACK, Vector2d(4, 4)),
+        King(Team.BLACK, Vector2d(4, 7))
+    ]
+
+    engine = ChessEngine(pieces, [Move(Vector2d(2, 1), Vector2d(2, 2))])
+
+    capturing = Capturing(Vector2d(4, 4), Vector2d(2, 2))
+    engine.process_move(capturing)
+
+    assert engine.check_status.checked
+    assert engine.check_status.double_checked
+    assert engine.check_status.checking_piece_1 in (pieces[2], pieces[3])
+    assert engine.check_status.checking_piece_2 in (pieces[2], pieces[3])
+    assert engine.check_status.checking_piece_1 != engine.check_status.checking_piece_2
+
+
+def test_processing_promotion_single_check():
+    pieces = [
+        Pawn(Team.WHITE, Vector2d(2, 6)),
+        King(Team.WHITE, Vector2d(4, 0)),
+        King(Team.BLACK, Vector2d(4, 7))
+    ]
+
+    engine = ChessEngine(pieces, [Move(Vector2d(3, 7), Vector2d(4, 7))])
+
+    promotion = Promotion(Vector2d(2, 6), Vector2d(2, 7), piece_type=PieceType.ROOK)
+    engine.process_move(promotion)
+
+    new_piece = engine.board.piece_at(Vector2d(2, 7))
+    assert engine.check_status.checked
+    assert not engine.check_status.double_checked
+    assert engine.check_status.checking_piece_1 is new_piece
+
+
+def test_processing_en_passant_double_check():
+    pieces = [
+        Pawn(Team.WHITE, Vector2d(4, 4)),
+        Bishop(Team.WHITE, Vector2d(7, 6)),
+        Queen(Team.WHITE, Vector2d(4, 7)),
+        King(Team.WHITE, Vector2d(4, 0)),
+        Pawn(Team.BLACK, Vector2d(5, 4)),
+        King(Team.BLACK, Vector2d(4, 3))
+    ]
+
+    engine = ChessEngine(pieces, [Move(Vector2d(5, 6), Vector2d(5, 4))])
+
+    en_passant = EnPassant(Vector2d(4, 4), Vector2d(5, 5), Vector2d(5, 4))
+    engine.process_move(en_passant)
+
+    assert engine.check_status.checked
+    assert engine.check_status.double_checked
+    assert engine.check_status.checking_piece_1 in (pieces[1], pieces[2])
+    assert engine.check_status.checking_piece_2 in (pieces[1], pieces[2])
+    assert engine.check_status.checking_piece_1 != engine.check_status.checking_piece_2

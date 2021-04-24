@@ -3,6 +3,7 @@ from typing import Optional
 from shared.chessboard import Piece, Chessboard, on_same_line, on_same_row, within_board, \
     is_between, SECOND_RANK, FIRST_RANK, on_same_diagonal, unit_vector_to, on_same_color
 from shared.move import AbstractMove, Move, EnPassant, Capturing, Promotion, PromotionWithCapturing, Castling, MoveType
+from shared.move_history import MoveHistory, BoardSnapshot, CastleRight
 from shared.position import Vector2d, distance_y
 from shared.piece import Team, Pawn, Knight, King, PieceType, Bishop, Rook, Queen
 
@@ -23,15 +24,6 @@ class CheckStatus:
     @property
     def double_checked(self) -> bool:
         return self.checking_piece_1 is not None and self.checking_piece_2 is not None
-
-
-class MoveHistory:
-    def __init__(self, moves: list[AbstractMove] = None):
-        self.moves: list[AbstractMove] = moves or []
-
-    @property
-    def last_move(self) -> Optional[AbstractMove]:
-        return None if len(self.moves) == 0 else self.moves[-1]
 
 
 class ChessEngine:
@@ -71,16 +63,30 @@ class ChessEngine:
 
         if move.type == MoveType.PROMOTION:
             self.board.remove_piece(move.position_from)
-            self.board.set_piece(move.piece_type)
+            self.board.set_piece(_create_promoting_piece(
+                move.piece_type,
+                self.currently_moving_team,
+                move.position_to
+            ))
         elif move.type == MoveType.PROMOTION_WITH_CAPTURING:
             self.board.remove_piece(move.position_to)
             self.board.remove_piece(move.position_from)
-            self.board.set_piece(move.piece_type)
+            self.board.set_piece(_create_promoting_piece(
+                move.piece_type,
+                self.currently_moving_team,
+                move.position_to
+            ))
         else:
             self.board.move(move.position_from, move.position_to)
 
-        self.move_history.moves.append(move)
         self.currently_moving_team = self._currently_opposite_team()
+        board_snapshot = BoardSnapshot(
+            {p.position: p.type for p in self.board.pieces[Team.WHITE].all + self.board.pieces[Team.BLACK].all},
+            self.currently_moving_team,
+            self._castle_rights(),
+            self._en_passant_available()
+        )
+        self.move_history.add_new(move, board_snapshot)
         self._update_check_status()
 
     def process_move_with_evaluation(self, move: AbstractMove):
@@ -369,6 +375,36 @@ class ChessEngine:
         else:
             return None
 
+    def _castle_rights(self) -> dict[Team, CastleRight]:
+        castle_rights: dict[Team, CastleRight] = {}
+        for team in self.board.pieces:
+            king = self.board.piece_at(Vector2d(4, FIRST_RANK[team]))
+            if not king or king.team != team or king.has_moved:
+                castle_rights[team] = CastleRight.NONE
+                continue
+
+            rook_long = self.board.piece_at(Vector2d(0, FIRST_RANK[team]))
+            rook_short = self.board.piece_at(Vector2d(7, FIRST_RANK[team]))
+            long_right = rook_long and rook_long.team == team and not rook_long.has_moved
+            short_right = rook_short and rook_short.team == team and not rook_short.has_moved
+            if long_right and short_right:
+                castle_rights[team] = CastleRight.BOTH
+            elif short_right:
+                castle_rights[team] = CastleRight.SHORT
+            elif long_right:
+                castle_rights[team] = CastleRight.LONG
+            else:
+                castle_rights[team] = CastleRight.NONE
+
+        return castle_rights
+
+    def _en_passant_available(self) -> bool:
+        for pawn in self.board.pieces[self.currently_moving_team].pawns:
+            if [move for move in self.available_moves(pawn.position) if move.type == MoveType.EN_PASSANT]:
+                return True
+
+        return False
+
 
 def _init_pieces() -> list[Piece]:
     pieces: list[Piece] = []
@@ -391,3 +427,17 @@ def _init_pieces() -> list[Piece]:
         pieces.append(King(team, Vector2d(4, FIRST_RANK[team])))
 
     return pieces
+
+
+def _create_promoting_piece(piece_type: PieceType, team: Team, position: Vector2d) -> Piece:
+    if piece_type == PieceType.KNIGHT:
+        return Knight(team, position, has_moved=True)
+    elif piece_type == PieceType.BISHOP:
+        return Bishop(team, position, has_moved=True)
+    elif piece_type == PieceType.ROOK:
+        return Rook(team, position, has_moved=True)
+    elif piece_type == PieceType.QUEEN:
+        return Queen(team, position, has_moved=True)
+    else:
+        raise RuntimeError("Wrong promoting piece type")
+
