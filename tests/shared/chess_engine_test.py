@@ -115,6 +115,102 @@ def test_pieces_init_double_checked():
     assert engine.check_status.checking_piece_2 in (white_knight, white_rook)
 
 
+def test_validate_move():
+    pieces = [
+        Pawn(Team.WHITE, Vector2d(0, 1), has_moved=False),
+        Pawn(Team.WHITE, Vector2d(2, 1), has_moved=False),
+        Pawn(Team.WHITE, Vector2d(5, 1), has_moved=False),
+        Pawn(Team.WHITE, Vector2d(7, 1), has_moved=False),
+        Pawn(Team.WHITE, Vector2d(2, 2), has_moved=True),
+        Pawn(Team.WHITE, Vector2d(6, 2), has_moved=True),
+        Knight(Team.WHITE, Vector2d(3, 3)),
+        Bishop(Team.WHITE, Vector2d(4, 2)),
+        Rook(Team.WHITE, Vector2d(5, 0)),
+        Rook(Team.WHITE, Vector2d(1, 6)),
+        Queen(Team.WHITE, Vector2d(3, 0)),
+        King(Team.WHITE, Vector2d(6, 1)),
+        Pawn(Team.BLACK, Vector2d(5, 6), has_moved=False),
+        Pawn(Team.BLACK, Vector2d(6, 6), has_moved=False),
+        Pawn(Team.BLACK, Vector2d(7, 6), has_moved=False),
+        Pawn(Team.BLACK, Vector2d(0, 5), has_moved=True),
+        Pawn(Team.BLACK, Vector2d(3, 5), has_moved=True),
+        Pawn(Team.BLACK, Vector2d(4, 5), has_moved=True),
+        Knight(Team.BLACK, Vector2d(1, 7)),
+        Bishop(Team.BLACK, Vector2d(2, 4)),
+        Rook(Team.BLACK, Vector2d(0, 7)),
+        Rook(Team.BLACK, Vector2d(2, 7)),
+        Queen(Team.BLACK, Vector2d(5, 5)),
+        King(Team.BLACK, Vector2d(6, 7))
+    ]
+
+    engine = ChessEngine(pieces)
+
+    assert engine.validate_move(Move(Vector2d(0, 1), Vector2d(0, 2)))
+    assert engine.validate_move(Move(Vector2d(0, 1), Vector2d(0, 3)))
+    assert not engine.validate_move(Capturing(Vector2d(2, 1), Vector2d(2, 2)))
+    assert engine.validate_move(Move(Vector2d(5, 1), Vector2d(5, 2)))
+    assert engine.validate_move(Move(Vector2d(5, 1), Vector2d(5, 3)))
+    assert not engine.validate_move(Capturing(Vector2d(5, 1), Vector2d(4, 2)))
+    assert not engine.validate_move(Capturing(Vector2d(5, 1), Vector2d(6, 2)))
+    assert engine.validate_move(Move(Vector2d(7, 1), Vector2d(7, 2)))
+    assert engine.validate_move(Move(Vector2d(7, 1), Vector2d(7, 3)))
+    assert not engine.validate_move(Capturing(Vector2d(7, 1), Vector2d(6, 2)))
+    assert engine.validate_move(Move(Vector2d(2, 2), Vector2d(2, 3)))
+    assert not engine.validate_move(Capturing(Vector2d(2, 2), Vector2d(3, 3)))
+    assert engine.validate_move(Move(Vector2d(6, 2), Vector2d(6, 3)))
+    assert not engine.validate_move(Move(Vector2d(6, 2), Vector2d(6, 4)))
+
+    assert engine.validate_move(Move(Vector2d(3, 3), Vector2d(2, 5)))
+    assert engine.validate_move(Capturing(Vector2d(3, 3), Vector2d(4, 5)))
+    assert engine.validate_move(Move(Vector2d(3, 3), Vector2d(1, 4)))
+    assert engine.validate_move(Move(Vector2d(3, 3), Vector2d(5, 4)))
+    assert engine.validate_move(Move(Vector2d(3, 3), Vector2d(1, 2)))
+    assert engine.validate_move(Move(Vector2d(3, 3), Vector2d(5, 2)))
+    assert not engine.validate_move(Capturing(Vector2d(3, 3), Vector2d(2, 1)))
+    assert engine.validate_move(Move(Vector2d(3, 3), Vector2d(4, 1)))
+
+    assert engine.validate_move(Move(Vector2d(4, 2), Vector2d(2, 0)))
+    assert engine.validate_move(Move(Vector2d(4, 2), Vector2d(3, 1)))
+    assert engine.validate_move(Move(Vector2d(4, 2), Vector2d(5, 3)))
+    assert engine.validate_move(Move(Vector2d(4, 2), Vector2d(6, 4)))
+    assert engine.validate_move(Move(Vector2d(4, 2), Vector2d(7, 5)))
+    assert not engine.validate_move(Capturing(Vector2d(4, 2), Vector2d(3, 3)))
+    assert not engine.validate_move(Capturing(Vector2d(4, 2), Vector2d(5, 1)))
+
+    assert not engine.validate_move(Capturing(Vector2d(5, 0), Vector2d(3, 0)))
+    assert engine.validate_move(Move(Vector2d(5, 0), Vector2d(4, 0)))
+    assert engine.validate_move(Move(Vector2d(5, 0), Vector2d(6, 0)))
+    assert engine.validate_move(Move(Vector2d(5, 0), Vector2d(7, 0)))
+    assert not engine.validate_move(Capturing(Vector2d(5, 0), Vector2d(5, 1)))
+    assert engine.validate_move(Capturing(Vector2d(1, 6), Vector2d(1, 7)))
+    assert engine.validate_move(Capturing(Vector2d(1, 6), Vector2d(5, 6)))
+    assert not engine.validate_move(Capturing(Vector2d(1, 6), Vector2d(6, 6)))
+
+    assert engine.validate_move(Move(Vector2d(3, 0), Vector2d(0, 0)))
+    assert engine.validate_move(Move(Vector2d(3, 0), Vector2d(1, 0)))
+    assert engine.validate_move(Move(Vector2d(3, 0), Vector2d(2, 0)))
+    assert engine.validate_move(Move(Vector2d(3, 0), Vector2d(4, 0)))
+    assert engine.validate_move(Move(Vector2d(3, 0), Vector2d(4, 0)))
+    assert not engine.validate_move(Capturing(Vector2d(3, 0), Vector2d(5, 0)))
+    assert not engine.validate_move(Capturing(Vector2d(3, 0), Vector2d(2, 1)))
+    assert engine.validate_move(Move(Vector2d(3, 0), Vector2d(3, 1)))
+    assert engine.validate_move(Move(Vector2d(3, 0), Vector2d(3, 2)))
+    assert not engine.validate_move(Capturing(Vector2d(3, 0), Vector2d(3, 3)))
+    assert engine.validate_move(Move(Vector2d(3, 0), Vector2d(4, 1)))
+    assert engine.validate_move(Move(Vector2d(3, 0), Vector2d(5, 2)))
+    assert engine.validate_move(Move(Vector2d(3, 0), Vector2d(6, 3)))
+    assert engine.validate_move(Move(Vector2d(3, 0), Vector2d(7, 4)))
+
+    assert not engine.validate_move(Capturing(Vector2d(6, 1), Vector2d(5, 0)))
+    assert engine.validate_move(Move(Vector2d(6, 1), Vector2d(6, 0)))
+    assert engine.validate_move(Move(Vector2d(6, 1), Vector2d(7, 0)))
+    assert not engine.validate_move(Capturing(Vector2d(6, 1), Vector2d(5, 1)))
+    assert not engine.validate_move(Capturing(Vector2d(6, 1), Vector2d(7, 1)))
+    assert not engine.validate_move(Move(Vector2d(6, 1), Vector2d(5, 2)))
+    assert not engine.validate_move(Capturing(Vector2d(6, 1), Vector2d(6, 2)))
+    assert engine.validate_move(Move(Vector2d(6, 1), Vector2d(7, 2)))
+
+
 def test_pawn_available_moves_not_checked():
     pieces = [
         Pawn(Team.WHITE, Vector2d(0, 1), has_moved=True),

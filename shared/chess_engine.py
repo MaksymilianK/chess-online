@@ -84,11 +84,8 @@ class ChessEngine:
         self.move_history.update(move, self._board_snapshot())
         self._update_check_status()
 
-    def process_move_with_evaluation(self, move: AbstractMove):
-        if move not in self.available_moves(move.position_from):
-            raise Exception("Cannot make a move, because it is not valid")
-
-        self.process_move(move)
+    def validate_move(self, move: AbstractMove) -> bool:
+        return move in self.available_moves(move.position_from)
 
     def is_checkmate(self) -> bool:
         return self.check_status.double_checked and not self.available_moves(self._current_king_position()) or \
@@ -96,7 +93,8 @@ class ChessEngine:
                                                   if self.available_moves(piece.position)]
 
     def is_tie(self) -> bool:
-        return not self.has_sufficient_material(Team.WHITE) and not self.has_sufficient_material(Team.BLACK)
+        return not self.has_sufficient_material(Team.WHITE) and not self.has_sufficient_material(Team.BLACK) or \
+               self.move_history.repeated_five_times()
 
     def has_sufficient_material(self, team: Team) -> bool:
         other_team = Team.WHITE if team == Team.BLACK else Team.BLACK
@@ -443,4 +441,3 @@ def _create_promoting_piece(piece_type: PieceType, team: Team, position: Vector2
         return Queen(team, position, has_moved=True)
     else:
         raise RuntimeError("Wrong promoting piece type")
-
