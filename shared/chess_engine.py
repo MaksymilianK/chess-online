@@ -96,6 +96,9 @@ class ChessEngine:
         return not self.has_sufficient_material(Team.WHITE) and not self.has_sufficient_material(Team.BLACK) or \
                self.move_history.repeated_five_times()
 
+    def can_claim_draw(self) -> bool:
+        return self.move_history.repeated_three_times() or self.move_history.fifty_moves_rule_satisfied()
+
     def has_sufficient_material(self, team: Team) -> bool:
         other_team = Team.WHITE if team == Team.BLACK else Team.BLACK
 
@@ -117,7 +120,7 @@ class ChessEngine:
 
     def _board_snapshot(self):
         return BoardSnapshot(
-            {p.position: p.type for p in self.board.pieces[Team.WHITE].all + self.board.pieces[Team.BLACK].all},
+            {p.position: (p.type, p.team) for p in self.board.pieces[Team.WHITE].all + self.board.pieces[Team.BLACK].all},
             self.currently_moving_team,
             self._castle_rights(),
             self._en_passant_available()
