@@ -1,0 +1,17 @@
+from enum import Enum
+
+
+class MessageCode(Enum):
+    SIGN_UP = 1
+    SIGN_IN = 2
+    JOIN_RANKED = 3
+    CREATE_PRIVATE_ROOM = 4
+    JOIN_PRIVATE_ROOM = 5
+    KICK_FROM_PRIVATE_ROOM = 6
+    START_PRIVATE_GAME = 7
+    GAME_SURRENDER = 8
+    GAME_OFFER_DRAW = 9
+    GAME_RESPOND_TO_DRAW_OFFER = 10
+    GAME_CLAIM_DRAW = 11
+    GAME_MOVE = 12
+    GAME_TIME_END = 13

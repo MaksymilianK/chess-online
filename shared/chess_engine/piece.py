@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from enum import Enum, auto
 
-from shared.position import Vector2d, UP, DOWN, UP_RIGHT, UP_LEFT, DOWN_LEFT, DOWN_RIGHT, LEFT, RIGHT
+from shared.chess_engine.position import Vector2d, UP, DOWN, UP_RIGHT, UP_LEFT, DOWN_LEFT, DOWN_RIGHT, LEFT, RIGHT
 
 
 class Team(Enum):

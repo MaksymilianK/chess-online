@@ -1,7 +1,7 @@
-from shared.move import Move, Capturing
-from shared.move_history import MoveHistory, BoardSnapshot, CastleRight
-from shared.piece import PieceType, Team
-from shared.position import Vector2d
+from shared.chess_engine.move import Move, Capturing
+from shared.chess_engine.move_history import MoveHistory, BoardSnapshot, CastleRight
+from shared.chess_engine.piece import PieceType, Team
+from shared.chess_engine.position import Vector2d
 
 
 def test_repeated_three_times():

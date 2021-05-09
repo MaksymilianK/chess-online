@@ -4,9 +4,9 @@ from collections import defaultdict
 from enum import Enum, auto
 from typing import Optional, DefaultDict
 
-from shared.move import AbstractMove, MoveType
-from shared.piece import Team, PieceType
-from shared.position import Vector2d
+from shared.chess_engine.move import AbstractMove, MoveType
+from shared.chess_engine.piece import Team, PieceType
+from shared.chess_engine.position import Vector2d
 
 
 class CastleRight(Enum):

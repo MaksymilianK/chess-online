@@ -1,11 +1,11 @@
 from typing import Optional
 
-from shared.chessboard import Piece, Chessboard, on_same_line, on_same_row, within_board, \
+from shared.chess_engine.chessboard import Piece, Chessboard, on_same_line, on_same_row, within_board, \
     is_between, SECOND_RANK, FIRST_RANK, on_same_diagonal, unit_vector_to, on_same_color
-from shared.move import AbstractMove, Move, EnPassant, Capturing, Promotion, PromotionWithCapturing, Castling, MoveType
-from shared.move_history import MoveHistory, BoardSnapshot, CastleRight
-from shared.position import Vector2d, distance_y
-from shared.piece import Team, Pawn, Knight, King, PieceType, Bishop, Rook, Queen
+from shared.chess_engine.move import AbstractMove, Move, EnPassant, Capturing, Promotion, PromotionWithCapturing, Castling, MoveType
+from shared.chess_engine.move_history import MoveHistory, BoardSnapshot, CastleRight
+from shared.chess_engine.position import Vector2d, distance_y
+from shared.chess_engine.piece import Team, Pawn, Knight, King, PieceType, Bishop, Rook, Queen
 
 
 class CheckStatus:
