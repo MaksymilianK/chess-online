@@ -2,11 +2,11 @@ import asyncio
 
 import websockets
 
-from server.auth import AuthService
 from server.connection_pool import ConnectionPool
 from server.database import DBConnection, DBConfig
 from server.message_broker import MessageBroker
-from server.player_repo import PlayerRepository
+from server.player.auth_service import AuthService
+from server.player.player_repo import PlayerRepository
 
 if __name__ == "__main__":
     print("Server is running!")

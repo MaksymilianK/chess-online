@@ -4,8 +4,9 @@ from collections import OrderedDict
 
 from websockets import WebSocketServerProtocol
 
-from server.auth import Player
+from server.exception import InvalidRequestException
 from server.message_broker import MessageBroker
+from server.player.player import Player
 
 
 class ConnectionPool:
@@ -44,10 +45,16 @@ class ConnectionPool:
             await asyncio.sleep(2)
 
     async def on_message(self, message: str, websocket: WebSocketServerProtocol):
-        if websocket in self._anonymous:
-            player = await self._message_broker.on_anonymous_message(message, websocket)
-            if player:
-                self._anonymous.pop(websocket)
-                self._authenticated[websocket] = player
-        else:
-            await self._message_broker.on_authenticated_message(message, websocket)
+        try:
+            if websocket in self._anonymous:
+                player = await self._message_broker.on_anonymous_message(message, websocket)
+                if player:
+                    self._anonymous.pop(websocket)
+                    self._authenticated[websocket] = player
+                else:
+                    await websocket.close(reason="cannot authenticate")
+            else:
+                await self._message_broker.on_authenticated_message(message, websocket)
+        except InvalidRequestException as e:
+            await websocket.close(reason="invalid request")
+

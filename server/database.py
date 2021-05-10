@@ -4,6 +4,7 @@ import motor.motor_asyncio
 import yaml
 from motor.core import AgnosticClient, AgnosticDatabase
 
+
 DB_CONFIG_FILE = "db-config.yaml"
 
 

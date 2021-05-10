@@ -2,10 +2,11 @@ from __future__ import annotations
 from typing import Optional
 from motor.core import AgnosticCollection
 from server.database import DBConnection
+from shared.game_type import GameType
 
 
 class PlayerModel:
-    def __init__(self, nick: str = None, elo: int = None, email: str = None, password_hash: str = None):
+    def __init__(self, nick: str = None, elo: dict[GameType, int] = None, email: str = None, password_hash: str = None):
         self.nick = nick
         self.elo = elo
         self.email = email
