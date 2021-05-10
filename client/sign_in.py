@@ -41,9 +41,9 @@ class SignIn:
         if platform.system() == "Darwin":
             self.sign_up_btn = Button(self.frame, text="Sign up", font=("Times New Roman", 12, "bold"), bd=0, fg="gray",
                                       bg="white", activeforeground="dim gray", activebackground="white", borderless=1,
-                                      cursor="hand2", command=self.recover_password)
+                                      cursor="hand2", command=self.sign_up)
 
-            self.forget_password_btn = Button(self.frame, text="Forget Password?", font=("Times New Roman", 12, "bold"),
+            self.forgot_password_btn = Button(self.frame, text="Forgot Password?", font=("Times New Roman", 12, "bold"),
                                               bd=0, fg="#d77337", bg="white", activeforeground="#c56328",
                                               activebackground="white", borderless=1, cursor="hand2",
                                               command=self.recover_password)
@@ -54,9 +54,9 @@ class SignIn:
         else:
             self.sign_up_btn = Button(self.frame, text="Sign up", font=("Times New Roman", 12, "bold"), bd=0, fg="gray",
                                       bg="white", activeforeground="dim gray", activebackground="white", cursor="hand2",
-                                      command=self.recover_password)
+                                      command=self.sign_up)
 
-            self.forget_password_btn = Button(self.frame, text="Forget Password?", font=("Times New Roman", 12, "bold"),
+            self.forgot_password_btn = Button(self.frame, text="Forgot Password?", font=("Times New Roman", 12, "bold"),
                                               bd=0, fg="#d77337", bg="white", activeforeground="#c56328",
                                               activebackground="white", cursor="hand2", command=self.recover_password)
 
@@ -66,7 +66,7 @@ class SignIn:
 
         self.sign_up_btn.place(x=220, y=100)
 
-        self.forget_password_btn.place(x=90, y=280)
+        self.forgot_password_btn.place(x=90, y=280)
 
         self.sign_in_btn.place(x=300, y=470, width=180, height=40)
 
