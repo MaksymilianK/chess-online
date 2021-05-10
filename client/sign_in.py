@@ -6,7 +6,7 @@ if platform.system() == "Darwin":
     from tkmacosx import Button
 
 
-class Login:
+class SignIn:
     def __init__(self, root):
         self.root = root
         self.root.title("Sign In")
