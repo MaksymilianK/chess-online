@@ -37,10 +37,10 @@ class ChessEngine:
     def available_moves(self, piece_at: Vector2d) -> list[AbstractMove]:
         piece = self.board.piece_at(piece_at)
         if piece is None:
-            raise Exception("Cannot move a piece at the specified field, because the piece is not there")
+            return []
 
         if not piece.team == self.currently_moving_team:
-            raise Exception("Cannot move a piece of the opponent's team")
+            return []
 
         if self.check_status.double_checked and piece.type != PieceType.KING:
             return []
@@ -160,7 +160,7 @@ class ChessEngine:
                         and other_piece.team != self.currently_moving_team:
                     checking_pieces.append(other_piece)
 
-        for move_vector in Pawn.moves[self._currently_opposite_team()]:
+        for move_vector in Pawn.attacks[self._currently_opposite_team()]:
             other_pos = king_pos - move_vector
             if within_board(other_pos):
                 other_piece = self.board.piece_at(other_pos)
@@ -223,7 +223,8 @@ class ChessEngine:
                     available_moves.append(Capturing(pawn.position, attack_pos))
             elif self._last_moving_piece() and self._last_moving_piece().type == PieceType.PAWN and distance_y(
                     self.move_history.last_move.position_from, self.move_history.last_move.position_to) == 2 \
-                    and self.move_history.last_move.position_to.x == attack_pos.x:
+                    and self.move_history.last_move.position_to.x == attack_pos.x \
+                    and pawn.position.y == self.move_history.last_move.position_to.y:
                 available_moves.append(EnPassant(pawn.position, attack_pos, self.move_history.last_move.position_to))
 
         return available_moves
@@ -330,7 +331,7 @@ class ChessEngine:
             return False
 
         revealed_piece = self.board.next_piece_on_line(king_pos, pos_from)
-        if not revealed_piece:
+        if not revealed_piece or revealed_piece.team == self.currently_moving_team:
             return False
 
         if revealed_piece.type is PieceType.QUEEN:
@@ -349,13 +350,13 @@ class ChessEngine:
         for piece in opponent_pieces.pawns:
             for attack_vector in piece.attack_vectors:
                 new_pos = piece.position + attack_vector
-                if within_board(new_pos) and not self.board.piece_at(new_pos):
+                if within_board(new_pos):
                     attacked_fields.add(new_pos)
 
         for piece in opponent_pieces.knights + [opponent_pieces.king]:
             for move_vector in piece.move_vectors:
                 new_pos = piece.position + move_vector
-                if within_board(new_pos) and not self.board.piece_at(new_pos):
+                if within_board(new_pos):
                     attacked_fields.add(new_pos)
 
         for piece in opponent_pieces.bishops + opponent_pieces.rooks + opponent_pieces.queens:
