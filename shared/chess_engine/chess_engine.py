@@ -4,7 +4,7 @@ from shared.chess_engine.chessboard import Piece, Chessboard, on_same_line, on_s
     is_between, SECOND_RANK, FIRST_RANK, on_same_diagonal, unit_vector_to, on_same_color
 from shared.chess_engine.move import AbstractMove, Move, EnPassant, Capturing, Promotion, PromotionWithCapturing, Castling, MoveType
 from shared.chess_engine.move_history import MoveHistory, BoardSnapshot, CastleRight
-from shared.chess_engine.position import Vector2d, distance_y
+from shared.chess_engine.position import Vector2d, distance_y, centre
 from shared.chess_engine.piece import Team, Pawn, Knight, King, PieceType, Bishop, Rook, Queen
 
 
@@ -163,7 +163,7 @@ class ChessEngine:
                         and other_piece.team != self.currently_moving_team:
                     checking_pieces.append(other_piece)
 
-        for move_vector in Pawn.moves[self._currently_opposite_team()]:
+        for move_vector in Pawn.attacks[self._currently_opposite_team()]:
             other_pos = king_pos - move_vector
             if within_board(other_pos):
                 other_piece = self.board.piece_at(other_pos)
@@ -226,7 +226,7 @@ class ChessEngine:
                     available_moves.append(Capturing(pawn.position, attack_pos))
             elif self._last_moving_piece() and self._last_moving_piece().type == PieceType.PAWN and distance_y(
                     self.move_history.last_move.position_from, self.move_history.last_move.position_to) == 2 \
-                    and self.move_history.last_move.position_to.x == attack_pos.x:
+                    and self.move_history.last_move.position_to.x == attack_pos.x and attack_pos.y == centre():
                 available_moves.append(EnPassant(pawn.position, attack_pos, self.move_history.last_move.position_to))
 
         return available_moves
@@ -352,13 +352,13 @@ class ChessEngine:
         for piece in opponent_pieces.pawns:
             for attack_vector in piece.attack_vectors:
                 new_pos = piece.position + attack_vector
-                if within_board(new_pos) and not self.board.piece_at(new_pos):
+                if within_board(new_pos):
                     attacked_fields.add(new_pos)
 
         for piece in opponent_pieces.knights + [opponent_pieces.king]:
             for move_vector in piece.move_vectors:
                 new_pos = piece.position + move_vector
-                if within_board(new_pos) and not self.board.piece_at(new_pos):
+                if within_board(new_pos):
                     attacked_fields.add(new_pos)
 
         for piece in opponent_pieces.bishops + opponent_pieces.rooks + opponent_pieces.queens:

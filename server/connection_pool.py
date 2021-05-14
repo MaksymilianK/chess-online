@@ -4,7 +4,7 @@ from collections import OrderedDict
 
 from websockets import WebSocketServerProtocol
 
-from server.exception import InvalidRequestException
+from server.request import InvalidRequestException
 from server.message_broker import MessageBroker
 from server.player.player import Player
 
@@ -24,6 +24,7 @@ class ConnectionPool:
             if websocket in self._anonymous:
                 self._anonymous.pop(websocket)
             else:
+                await self._message_broker.on_connection_closed(self._authenticated[websocket])
                 self._authenticated.pop(websocket)
 
     async def monitor_unauthenticated(self):
@@ -51,8 +52,6 @@ class ConnectionPool:
                 if player:
                     self._anonymous.pop(websocket)
                     self._authenticated[websocket] = player
-                else:
-                    await websocket.close(reason="cannot authenticate")
             else:
                 await self._message_broker.on_authenticated_message(message, websocket)
         except InvalidRequestException as e:

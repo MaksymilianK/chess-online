@@ -6,10 +6,10 @@ import argon2
 from websockets import WebSocketServerProtocol
 
 from server import PlayerRepository
-from server.exception import InvalidRequestException, assert_in
+from server.request import InvalidRequestException, assert_in
 from server.player.player import Player, DEFAULT_ELO
 from server.player.player_repo import PlayerModel
-from shared.game_type import GameType
+from shared.game.game_type import GameType
 from shared.message.auth_status import AuthStatus
 from shared.message.message_code import MessageCode
 
@@ -24,22 +24,20 @@ class AuthService:
         self._password_hasher = password_hasher
 
     async def sign_up(self, message: dict, websocket: WebSocketServerProtocol) -> Optional[Player]:
-        assert_in(message, "nick", "email", "password")
-        nick = message["nick"]
-        email = message["email"]
-        password = message["password"]
+        assert_in(message, ("nick", str), ("email", str), ("password", str))
+        nick, email, password = message["nick"], message["email"], message["password"]
 
         if not nick_valid(nick) or not email_valid(email) or not password_valid(password):
             raise InvalidRequestException("invalid message field")
 
         if await self._player_repo.exists_with_nick(nick):
-            await websocket.send(json.dumps({
+            await websocket.close(reason=json.dumps({
                 "code": MessageCode.SIGN_UP,
                 "status": AuthStatus.NICK_EXIST
             }))
             return None
         elif await self._player_repo.exists_with_email(email):
-            await websocket.send(json.dumps({
+            await websocket.close(reason=json.dumps({
                 "code": MessageCode.SIGN_UP,
                 "status": AuthStatus.EMAIL_EXIST
             }))
@@ -68,23 +66,22 @@ class AuthService:
         return player
 
     async def sign_in(self, message: dict, websocket: WebSocketServerProtocol) -> Optional[Player]:
-        assert_in(message, "email", "password")
-        email = message["email"]
-        password = message["password"]
+        assert_in(message, ("email", str), ("password", str))
+        email, password = message["email"], message["password"]
 
         if not email_valid(email) or not password_valid(password):
             raise InvalidRequestException("invalid message field")
 
         model = await self._player_repo.find_one_by_email(email)
         if model is None:
-            await websocket.send(json.dumps({
+            await websocket.close(reason=json.dumps({
                 "code": MessageCode.SIGN_IN,
                 "status": AuthStatus.EMAIL_NOT_EXIST
             }))
             return None
 
         if not self._password_hasher.verify(model.password_hash, password):
-            await websocket.send(json.dumps({
+            await websocket.close(reason=json.dumps({
                 "code": MessageCode.SIGN_IN,
                 "status": AuthStatus.WRONG_PASSWORD
             }))

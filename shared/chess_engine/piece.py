@@ -5,17 +5,31 @@ from shared.chess_engine.position import Vector2d, UP, DOWN, UP_RIGHT, UP_LEFT, 
 
 
 class Team(Enum):
-    WHITE = auto()
-    BLACK = auto()
+    WHITE = 1
+    BLACK = 2
 
 
 class PieceType(Enum):
-    PAWN = auto()
-    KNIGHT = auto()
-    BISHOP = auto()
-    ROOK = auto()
-    QUEEN = auto()
-    KING = auto()
+    PAWN = 1
+    KNIGHT = 2
+    BISHOP = 3
+    ROOK = 4
+    QUEEN = 5
+    KING = 6
+
+
+PIECE_TYPES_FROM_CODE = {
+    1: PieceType.PAWN,
+    2: PieceType.KNIGHT,
+    3: PieceType.BISHOP,
+    4: PieceType.ROOK,
+    5: PieceType.QUEEN,
+    6: PieceType.KING
+}
+
+
+def opposite_team(team: Team) -> Team:
+    return Team.WHITE if team == Team.BLACK else Team.BLACK
 
 
 class Piece(ABC):
