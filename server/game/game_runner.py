@@ -18,17 +18,18 @@ class GameEndStatus:
 
 
 class MoveStatus:
-    def __init__(self, successful: bool, game_end_status: GameEndStatus = None):
+    def __init__(self, successful: bool, player_time_left: int, game_end_status: GameEndStatus = None):
         self.successful = successful
+        self.player_time_left = player_time_left
         self.game_end_status = game_end_status
 
 
 class GameRunner:
     def __init__(self):
         self.teams: dict[Player, Team] = {}
+        self.game_type: Optional[GameType] = None
+        self.timer: Optional[GameTimer] = None
         self._engine: Optional[ChessEngine] = None
-        self._timer: Optional[GameTimer] = None
-        self._game_type: Optional[GameType] = None
         self._draw_offer: Optional[Player] = None
         self._on_time_end: Optional[Callable[[GameEndStatus], Coroutine]] = None
 
@@ -40,7 +41,7 @@ class GameRunner:
         if self.running:
             return
 
-        self._game_type = game_type
+        self.game_type = game_type
         self._on_time_end = on_time_end
 
         team = random.randint(0, 1)
@@ -52,16 +53,16 @@ class GameRunner:
             self.teams[player2] = Team.WHITE
 
         self._engine = ChessEngine()
-        self._timer = GameTimer(TIMES[game_type], self._on_team_time_end)
+        self.timer = GameTimer(TIMES[game_type], self._on_team_time_end)
 
     def clean(self):
-        if self._timer:
-            self._timer.cancel()
-            self._timer = None
+        if self.timer:
+            self.timer.cancel()
+            self.timer = None
 
         self._engine = None
         self._draw_offer = None
-        self._game_type = None
+        self.game_type = None
         self._on_time_end = None
         self.teams = {}
 
@@ -70,7 +71,7 @@ class GameRunner:
             return None
 
         winner = self._player_by_team(opposite_team(self.teams[player]))
-        game_type = self._game_type
+        game_type = self.game_type
         self.clean()
         return GameEndStatus(False, winner, player, game_type)
 
@@ -86,7 +87,7 @@ class GameRunner:
             return None
 
         players = list(self.teams.keys())
-        game_type = self._game_type
+        game_type = self.game_type
         self.clean()
         return GameEndStatus(True, players[0], players[1], game_type)
 
@@ -103,39 +104,41 @@ class GameRunner:
             return None
 
         players = list(self.teams.keys())
-        game_type = self._game_type
+        game_type = self.game_type
         self.clean()
         return GameEndStatus(True, players[0], players[1], game_type)
 
     def on_move(self, move: AbstractMove, player: Player) -> MoveStatus:
         if not self.running or self.teams[player] != self._engine.currently_moving_team \
                 or not self._engine.validate_move(move):
-            return MoveStatus(False)
+            return MoveStatus(False, -1)
 
         self._engine.process_move(move)
 
-        game_type = self._game_type
+        game_type = self.game_type
         opposite_player = self._opposite_player(player)
+
+        time_left = self.timer.next()
 
         if self._engine.is_checkmate():
             self.clean()
-            return MoveStatus(True, GameEndStatus(False, player, opposite_player, game_type))
+            return MoveStatus(True, time_left, GameEndStatus(False, player, opposite_player, game_type))
         elif self._engine.is_tie():
             self.clean()
-            return MoveStatus(True, GameEndStatus(True, player, opposite_player, game_type))
+            return MoveStatus(True, time_left, GameEndStatus(True, player, opposite_player, game_type))
 
         if self._draw_offer != player:
             self._draw_offer = None
 
-        return MoveStatus(True)
+        return MoveStatus(True, time_left)
 
     async def _on_team_time_end(self, team: Team):
         if not self.running:
             return
 
-        player = self._player_by_team(self._timer.current_team)
+        player = self._player_by_team(self.timer.current_team)
         opposite = self._opposite_player(player)
-        game_type = self._game_type
+        game_type = self.game_type
 
         self.clean()
         if self._engine.has_sufficient_material(self.teams[opposite]):

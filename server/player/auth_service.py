@@ -5,7 +5,7 @@ from typing import Optional
 import argon2
 from websockets import WebSocketServerProtocol
 
-from server import PlayerRepository
+from server.player.player_repo import PlayerRepository
 from server.request import InvalidRequestException, assert_in
 from server.player.player import Player, DEFAULT_ELO
 from server.player.player_repo import PlayerModel

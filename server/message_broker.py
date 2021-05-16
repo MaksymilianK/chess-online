@@ -1,5 +1,5 @@
 import json
-from typing import Optional
+from typing import Optional, Callable
 
 from websockets import WebSocketServerProtocol
 
@@ -27,8 +27,19 @@ class MessageBroker:
     def __init__(self, auth_service: AuthService, game_room_service: GameRoomService):
         self._auth_service = auth_service
 
-        self._authenticated_actions = {
-            MessageCode.JOIN_RANKED: game_room_service.join_ranked
+        self._authenticated_actions: dict[int, Callable] = {
+            MessageCode.JOIN_RANKED_QUEUE.value: game_room_service.join_ranked_queue,
+            MessageCode.CANCEL_JOINING_RANKED.value: game_room_service.cancel_joining_ranked,
+            MessageCode.CREATE_PRIVATE_ROOM.value: game_room_service.create_private_room,
+            MessageCode.JOIN_PRIVATE_ROOM.value: game_room_service.join_private_room,
+            MessageCode.LEAVE_PRIVATE_ROOM.value: game_room_service.leave_private_room,
+            MessageCode.KICK_FROM_PRIVATE_ROOM.value: game_room_service.kick_from_private_room,
+            MessageCode.START_PRIVATE_GAME.value: game_room_service.start_private_game,
+            MessageCode.GAME_SURRENDER.value: game_room_service.surrender,
+            MessageCode.GAME_OFFER_DRAW.value: game_room_service.offer_draw,
+            MessageCode.GAME_RESPOND_TO_DRAW_OFFER.value: game_room_service.respond_to_draw_offer,
+            MessageCode.GAME_CLAIM_DRAW.value: game_room_service.claim_draw,
+            MessageCode.GAME_MOVE.value: game_room_service.move
         }
 
     async def on_anonymous_message(self, message_str: str, websocket: WebSocketServerProtocol) -> Optional[Player]:
@@ -40,11 +51,11 @@ class MessageBroker:
         elif code == MessageCode.SIGN_IN:
             return await self._auth_service.sign_in(message, websocket)
         else:
-            raise InvalidRequestException("invalid message code")
+            raise InvalidRequestException("Invalid message code")
 
     async def on_authenticated_message(self, message_str: str, sender: Player):
         message = _message_to_json(message_str)
         try:
-            await self._authenticated_actions[message["code"]](sender)
+            await self._authenticated_actions[message["code"]](message, sender)
         except KeyError:
-            raise InvalidRequestException("invalid message code")
+            raise InvalidRequestException("Invalid message code")

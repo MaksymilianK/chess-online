@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import asyncio
 from abc import ABC, abstractmethod
 from enum import Enum, auto
@@ -17,15 +19,15 @@ class GameRoom(ABC):
         self.runner = game_runner
 
     async def send(self, message: str):
-        await asyncio.wait(*[p.send(message) for p in self.players])
+        await asyncio.gather(*[p.send(message) for p in self.players])
 
-    @abstractmethod
     @property
+    @abstractmethod
     def players(self) -> list[Player]:
         pass
 
-    @abstractmethod
     @property
+    @abstractmethod
     def type(self):
         pass
 

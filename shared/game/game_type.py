@@ -7,7 +7,7 @@ class GameType(Enum):
     CLASSIC = 3
 
 
-GAME_TYPE_BY_CODE = {
+GAME_TYPES_BY_CODE = {
     1: GameType.BLITZ,
     2: GameType.RAPID,
     3: GameType.CLASSIC

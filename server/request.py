@@ -1,3 +1,5 @@
+import logging
+
 from shared.chess_engine.chessboard import within_board
 from shared.chess_engine.position import Vector2d
 
@@ -9,7 +11,7 @@ class InvalidRequestException(Exception):
 
 def assert_in(message: dict, *fields: tuple[str, type]):
     for field, t in fields:
-        if field not in message or not isinstance(field, t):
+        if field not in message or type(message[field]) != t:
             raise InvalidRequestException("invalid message format")
 
 

@@ -12,18 +12,14 @@ class Player:
         self.nick = nick
         self.elo = elo
         self._connection = connection
-        self._response = self._to_response()
 
     async def send(self, message: str):
         await self._connection.send(message)
 
     def as_response(self) -> dict:
-        return self._response
-
-    def _to_response(self) -> dict:
         return {
             "nick": self.nick,
-            "elo": self.elo
+            "elo": {gt.value: e for gt, e in self.elo.items()}
         }
 
     def __hash__(self) -> int:

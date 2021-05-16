@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 from typing import Optional
 from motor.core import AgnosticCollection
 from server.database import DBConnection
@@ -66,4 +65,4 @@ class PlayerRepository:
         await self._collection.insert_one(model.as_doc())
 
     async def update_elo(self, nick: str, new_elo: int, game_type: GameType):
-        await self._collection.update_one({"nick": nick}, {f"elo.${game_type.value}": new_elo})
+        await self._collection.update_one({"nick": nick}, {f"elo.{game_type.value}": new_elo})

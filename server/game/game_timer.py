@@ -19,7 +19,7 @@ class GameTimer:
 
         self._start()
 
-    def next(self):
+    def next(self) -> int:
         self._current_job.cancel()
         now = time.time_ns()
 
@@ -29,9 +29,13 @@ class GameTimer:
             time_passed = (now - self._move_start)
             self.times_left[self.current_team] -= time_passed
 
+        time_left = self.times_left[self.current_team]
+
         self.current_team = opposite_team(self.current_team)
         self._move_start = now
         self._measure(self.times_left[self.current_team])
+
+        return time_left
 
     def cancel(self):
         self._current_job.cancel()

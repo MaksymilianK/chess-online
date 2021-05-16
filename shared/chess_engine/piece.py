@@ -9,6 +9,12 @@ class Team(Enum):
     BLACK = 2
 
 
+TEAMS_BY_CODE = {
+    1: Team.WHITE,
+    2: Team.BLACK
+}
+
+
 class PieceType(Enum):
     PAWN = 1
     KNIGHT = 2
