@@ -53,7 +53,7 @@ class ConnectionPool:
                     self._anonymous.pop(websocket)
                     self._authenticated[websocket] = player
             else:
-                await self._message_broker.on_authenticated_message(message, websocket)
+                await self._message_broker.on_authenticated_message(message, self._authenticated[websocket])
         except InvalidRequestException as e:
             await websocket.close(reason="invalid request")
 

@@ -31,15 +31,15 @@ class AuthService:
             raise InvalidRequestException("invalid message field")
 
         if await self._player_repo.exists_with_nick(nick):
-            await websocket.close(reason=json.dumps({
-                "code": MessageCode.SIGN_UP,
-                "status": AuthStatus.NICK_EXIST
+            await websocket.close(code=4000, reason=json.dumps({
+                "code": MessageCode.SIGN_UP.value,
+                "status": AuthStatus.NICK_EXIST.value
             }))
             return None
         elif await self._player_repo.exists_with_email(email):
-            await websocket.close(reason=json.dumps({
-                "code": MessageCode.SIGN_UP,
-                "status": AuthStatus.EMAIL_EXIST
+            await websocket.close(code=4000, reason=json.dumps({
+                "code": MessageCode.SIGN_UP.value,
+                "status": AuthStatus.EMAIL_EXIST.value
             }))
             return None
 
@@ -59,8 +59,8 @@ class AuthService:
 
         player = Player(nick, elo, websocket)
         await websocket.send(json.dumps({
-            "code": MessageCode.SIGN_UP,
-            "status": AuthStatus.SUCCESS,
+            "code": MessageCode.SIGN_UP.value,
+            "status": AuthStatus.SUCCESS.value,
             "player": player.as_response()
         }))
         return player
@@ -74,23 +74,23 @@ class AuthService:
 
         model = await self._player_repo.find_one_by_email(email)
         if model is None:
-            await websocket.close(reason=json.dumps({
-                "code": MessageCode.SIGN_IN,
-                "status": AuthStatus.EMAIL_NOT_EXIST
+            await websocket.close(code=4000, reason=json.dumps({
+                "code": MessageCode.SIGN_IN.value,
+                "status": AuthStatus.EMAIL_NOT_EXIST.value
             }))
             return None
 
         if not self._password_hasher.verify(model.password_hash, password):
-            await websocket.close(reason=json.dumps({
-                "code": MessageCode.SIGN_IN,
-                "status": AuthStatus.WRONG_PASSWORD
+            await websocket.close(code=4000, reason=json.dumps({
+                "code": MessageCode.SIGN_IN.value,
+                "status": AuthStatus.WRONG_PASSWORD.value
             }))
             return None
 
         player = Player(model.nick, model.elo, websocket)
         await websocket.send(json.dumps({
-            "code": MessageCode.SIGN_IN,
-            "status": AuthStatus.SUCCESS,
+            "code": MessageCode.SIGN_IN.value,
+            "status": AuthStatus.SUCCESS.value,
             "player": player.as_response()
         }))
         return player

@@ -23,6 +23,5 @@ if __name__ == "__main__":
     server = websockets.serve(connection_pool.handle_connection, port=80)
     asyncio.get_event_loop().run_until_complete(server)
     asyncio.get_event_loop().run_until_complete(connection_pool.monitor_unauthenticated())
-    asyncio.get_event_loop().run_forever()
 
     print("Server is closing")

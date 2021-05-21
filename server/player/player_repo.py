@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Optional
 from motor.core import AgnosticCollection
 from server.database import DBConnection
-from shared.game.game_type import GameType
+from shared.game.game_type import GameType, GAME_TYPES_BY_CODE, GAME_TYPES_BY_NAME, GAME_TYPE_NAMES
 
 
 class PlayerModel:
@@ -18,7 +18,9 @@ class PlayerModel:
         if self.nick:
             doc["nick"] = self.nick
         if self.elo:
-            doc["elo"] = self.elo
+            doc["elo"]: dict[int, int] = {}
+            for game_type, elo in self.elo.items():
+                doc["elo"][GAME_TYPE_NAMES[game_type]] = elo
         if self.email:
             doc["email"] = self.email
         if self.password_hash:
@@ -32,7 +34,9 @@ class PlayerModel:
         if "nick" in doc:
             model.nick = doc["nick"]
         if "elo" in doc:
-            model.elo = doc["elo"]
+            model.elo = {}
+            for game_type, elo in doc["elo"].items():
+                model.elo[GAME_TYPES_BY_NAME[game_type]] = elo
         if "email" in doc:
             model.email = doc["email"]
         if "password_hash" in doc:

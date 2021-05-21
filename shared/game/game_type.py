@@ -14,6 +14,20 @@ GAME_TYPES_BY_CODE = {
 }
 
 
+GAME_TYPE_NAMES = {
+    GameType.BLITZ: "BLITZ",
+    GameType.RAPID: "RAPID",
+    GameType.CLASSIC: "CLASSIC"
+}
+
+
+GAME_TYPES_BY_NAME = {
+    "BLITZ": GameType.BLITZ,
+    "RAPID": GameType.RAPID,
+    "CLASSIC": GameType.CLASSIC
+}
+
+
 TIMES = {
     GameType.BLITZ: 5 * 60 * 1000,
     GameType.RAPID: 30 * 60 * 1000,
