@@ -26,6 +26,7 @@ def _message_to_json(message_str: str):
 class MessageBroker:
     def __init__(self, auth_service: AuthService, game_room_service: GameRoomService):
         self._auth_service = auth_service
+        self.game_room_service = game_room_service
 
         self._authenticated_actions: dict[int, Callable] = {
             MessageCode.JOIN_RANKED_QUEUE.value: game_room_service.join_ranked_queue,
@@ -59,3 +60,6 @@ class MessageBroker:
             await self._authenticated_actions[message["code"]](message, sender)
         except KeyError:
             raise InvalidRequestException("Invalid message code")
+
+    async def on_connection_closed(self, player: Player):
+        await self.game_room_service.disconnect(player)

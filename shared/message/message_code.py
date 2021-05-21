@@ -18,3 +18,4 @@ class MessageCode(Enum):
     GAME_CLAIM_DRAW = 14
     GAME_MOVE = 15
     GAME_TIME_END = 16
+    PLAYER_DISCONNECTED = 17

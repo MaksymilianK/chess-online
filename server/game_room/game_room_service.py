@@ -1,6 +1,5 @@
 import asyncio
 import json
-import logging
 import random
 from typing import Optional, Coroutine
 
@@ -86,6 +85,33 @@ class GameRoomService:
 
         for game_type in GameType:
             self.ranked_queue[game_type] = [set() for _ in range(NUM_OF_BUCKETS)]
+
+    async def disconnect(self, player: Player):
+        for game_type, buckets in self.ranked_queue.items():
+            elo_bucket = _elo_bucket(player, game_type)
+            if player in buckets[elo_bucket]:
+                buckets[elo_bucket].remove(player)
+                return
+
+        message = json.dumps({
+            "code": MessageCode.PLAYER_DISCONNECTED.value,
+            "player": player.as_response()
+        })
+
+        if player in self.ranked_rooms:
+            room = self.ranked_rooms[player]
+            game_end_status = room.runner.on_surrender(player)
+            await self._remove_ranked(game_end_status)
+            await game_end_status.winner.send(message)
+        elif player in self.private_rooms_by_player:
+            room = self.private_rooms_by_player[player]
+
+            if player is room.host:
+                self._remove_private(room)
+                if room.guest:
+                    await room.guest.send(message)
+            else:
+                await room.host.send(message)
 
     async def join_ranked_queue(self, message: dict, sender: Player):
         assert_in(message, ("gameType", int))
