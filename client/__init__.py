@@ -2,6 +2,7 @@ import platform
 import threading
 
 from client.connection.connection_manager import ConnectionManager
+from client.connection.game_room_service import GameRoomService
 from client.gui.gui_manager import GuiManager
 from client.connection.auth_service import AuthService
 
@@ -19,7 +20,9 @@ if __name__ == "__main__":
 
     connection_manager = ConnectionManager()
     auth_service = AuthService(connection_manager)
-    gui = GuiManager(auth_service)
+    game_room_service = GameRoomService(connection_manager)
+
+    gui = GuiManager(auth_service, game_room_service)
     connection_manager.set_notify_message(gui.notify_message)
 
     threading.Thread(target=connection_manager.start, daemon=True).start()

@@ -1,12 +1,14 @@
 import json
-import logging
 import platform
 import tkinter as tk
 from queue import Queue
 
 from PIL import ImageTk, Image
 
+from client.connection.game_room_service import GameRoomService
+from client.gui.game.ranked_game_view import RankedGameView
 from client.gui.menu.join_ranked_view import JoinRankedView
+from client.gui.menu.player_component import PlayerComponent
 from client.gui.menu.start_view import StartView
 from client.gui.shared import DisplayBoundary
 from client.gui.view import ViewName
@@ -17,7 +19,7 @@ from shared.message.message_code import MessageCode
 
 
 class GuiManager:
-    def __init__(self, auth_service: AuthService):
+    def __init__(self, auth_service: AuthService, game_room_service: GameRoomService):
         self.auth_service = auth_service
         self._messages: Queue[str] = Queue()
         self.root = tk.Tk()
@@ -32,12 +34,6 @@ class GuiManager:
         screen_width = self.root.winfo_vrootwidth()
         screen_height = self.root.winfo_vrootheight()
 
-        img = Image.open("client/img/bg3.jpg")
-        img = img.resize((screen_width, screen_height), Image.ANTIALIAS)
-        self.bg_img = ImageTk.PhotoImage(img)
-        self.bg = tk.Label(self.root, image=self.bg_img)
-        self.bg.place(x=0, y=0, relwidth=1, relheight=1)
-
         screen_ratio = screen_width / screen_height
         target_ratio = 16 / 9
 
@@ -51,14 +47,26 @@ class GuiManager:
         x = round((screen_width - width) / 2)
         y = round((screen_height - height) / 2)
 
-        display_size = DisplayBoundary(x, y, width, height)
+        display = DisplayBoundary(x, y, width, height)
+
+        img = Image.open("client/img/bg3.jpg")
+        img = img.resize((screen_width, screen_height), Image.ANTIALIAS)
+        self.bg_img = ImageTk.PhotoImage(img)
+
+        player_component = PlayerComponent(self.root, display, auth_service)
 
         self.views = {
-            ViewName.START: StartView(self.root, display_size, self.navigate, auth_service),
-            ViewName.SIGN_UP: SignUpView(self.root, display_size, self.navigate, auth_service),
-            ViewName.SIGN_IN: SignInView(self.root, display_size, self.navigate, auth_service),
-            ViewName.JOIN_RANKED: JoinRankedView(self.root, display_size, self.navigate, auth_service)
+            ViewName.SIGN_IN: SignInView(self.root, display, self.navigate, auth_service, player_component),
+            ViewName.SIGN_UP: SignUpView(self.root, display, self.navigate, auth_service, player_component),
+            ViewName.START: StartView(self.root, display, self.navigate, auth_service, player_component),
+            ViewName.JOIN_RANKED: JoinRankedView(self.root, display, self.navigate, auth_service, player_component,
+                                                 game_room_service),
+            ViewName.RANKED_GAME: RankedGameView(self.root, display, self.navigate, auth_service, player_component,
+                                                 game_room_service)
         }
+
+        self.bg = tk.Label(self.root, image=self.bg_img)
+        self.bg.place(x=0, y=0, relwidth=1, relheight=1)
 
         self.current_view = self.views[ViewName.SIGN_IN]
         self.current_view.show()
@@ -81,12 +89,13 @@ class GuiManager:
     def _on_message(self, event):
         message = json.loads(self._messages.get())
         code: int = message["code"]
-        logging.fatal("gui message")
 
         if code == MessageCode.SIGN_UP.value:
             self.views[ViewName.SIGN_UP].on_sign_up(message)
         elif code == MessageCode.SIGN_IN.value:
             self.views[ViewName.SIGN_IN].on_sign_in(message)
+        elif code == MessageCode.JOIN_RANKED_QUEUE.value:
+            self.views[ViewName.JOIN_RANKED].on_join_ranked_queue()
 
 
 

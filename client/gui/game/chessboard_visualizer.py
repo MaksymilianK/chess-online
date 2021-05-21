@@ -5,44 +5,42 @@ from PIL import Image, ImageTk
 import os
 import platform
 
+from client.gui.shared import DisplayBoundary
+from shared.chess_engine.chess_engine import ChessEngine
+from shared.chess_engine.move import Promotion, MoveType, AbstractMove
+from shared.chess_engine.piece import Team, PieceType, Piece
+from shared.chess_engine.position import Vector2d
+
 if platform.system() == "Darwin":
     from tkmacosx import Button
 
-from shared.chess_engine.position import Vector2d
-from shared.chess_engine.piece import Team, PieceType, Piece
-from shared.chess_engine.move import AbstractMove, MoveType
-from shared.chess_engine.chess_engine import ChessEngine
-
 
 class ChessboardVisualizer:
-    def __init__(self, root):
-        self.margin = 20
-        self.field_margin = 10
-
-        self.piece_size = 80
-        self.field_size = self.piece_size + 2 * self.field_margin
-        self.board_size = 8 * self.field_size
-
-        self.width = self.board_size + 2 * self.margin
-        self.height = self.board_size + 2 * self.margin
-
+    def __init__(self, root: Tk, display: DisplayBoundary):
         self.root = root
-        self.root.title("Chessboard")
-        self.root.geometry(f"{self.width}x{self.height}")
+
+        self.board_size = round(8/9*display.height)
+        while self.board_size % 8 != 0:
+            self.board_size += 1
+        self.field_size = self.board_size // 8
+
+        self.field_padding = round(self.field_size * 0.05)
+        self.piece_size = self.field_size - 2 * self.field_padding
 
         self.pieces: dict[Team, dict[PieceType, ImageTk.PhotoImage]] = {Team.WHITE: {}, Team.BLACK: {}}
 
         self._fields: dict[Vector2d, int] = {Vector2d(i, j): None for i in range(8) for j in range(8)}
         self._currently_available_moves: [int] = []
         self._selected_piece: Optional[Vector2d] = None
-        self._promotion_piece: Optional[PieceType] = None
+        self._promotion_move: Optional[Promotion] = None
 
         self.menu = None
 
+        self.margin = 10
         self.canvas_size = self.board_size + 2 * self.margin
 
         self.canvas = Canvas(root, width=self.canvas_size, height=self.canvas_size)
-        self.canvas.place(x=0, y=0)
+        self.canvas.place(x=display.x + 1/18 * display.height - self.margin, y=display.y + 1/18 * display.height - self.margin)
 
         self.chess_engine = ChessEngine()
         self.init_board()
@@ -140,22 +138,24 @@ class ChessboardVisualizer:
 
     def handle_promotion_menu_click_event(self, event: EventType):
         if 20 < event.x < 100 and 20 < event.y < 100:
-            self._promotion_piece = PieceType.BISHOP
+            self._promotion_move.piece_type = PieceType.BISHOP
             self.menu.destroy()
         elif 120 < event.x < 200 and 20 < event.y < 100:
-            self._promotion_piece = PieceType.KNIGHT
+            self._promotion_move.piece_type = PieceType.KNIGHT
             self.menu.destroy()
         elif 220 < event.x < 300 and 20 < event.y < 100:
-            self._promotion_piece = PieceType.ROOK
+            self._promotion_move.piece_type = PieceType.ROOK
             self.menu.destroy()
         elif 320 < event.x < 400 and 20 < event.y < 100:
-            self._promotion_piece = PieceType.QUEEN
+            self._promotion_move.piece_type = PieceType.QUEEN
             self.menu.destroy()
+
+        self.process_promotion()
 
     def handle_canvas_click_event(self, event: EventType):
         position = self.field_coords(Vector2d(event.x, event.y))
 
-        if not position:
+        if not position or self._promotion_move:
             return
 
         if self._selected_piece:
@@ -184,15 +184,30 @@ class ChessboardVisualizer:
                 return move
         return None
 
+    def process_promotion(self):
+        self.chess_engine.process_move(self._promotion_move)
+        self.clear_available_moves()
+
+        if self._promotion_move.type == MoveType.PROMOTION:
+            self.remove_piece(self._promotion_move.position_from)
+            self.set_piece(self.chess_engine.board.piece_at(self._promotion_move.position_to))
+        elif self._promotion_move.type == MoveType.PROMOTION_WITH_CAPTURING:
+            self.remove_piece(self._promotion_move.position_to)
+            self.remove_piece(self._promotion_move.position_from)
+            self.set_piece(self.chess_engine.board.piece_at(self._promotion_move.position_to))
+
+        self._promotion_move = None
+
     def process_move(self, move: AbstractMove):
         if not self.chess_engine.validate_move(move):
             return
 
         if move.type == MoveType.PROMOTION or move.type == MoveType.PROMOTION_WITH_CAPTURING:
+            self._promotion_move = move
             self.display_promotion_menu(self.chess_engine.board.piece_at(move.position_from).team)
-            move.piece_type = self._promotion_piece
-        self.chess_engine.process_move(move)
+            return
 
+        self.chess_engine.process_move(move)
         self.clear_available_moves()
 
         if move.type == MoveType.CAPTURING:
@@ -202,20 +217,12 @@ class ChessboardVisualizer:
         elif move.type == MoveType.EN_PASSANT:
             self.remove_piece(move.captured_position)
 
-        if move.type == MoveType.PROMOTION:
-            self.remove_piece(move.position_from)
-            self.set_piece(self.chess_engine.board.piece_at(move.position_to))
-        elif move.type == MoveType.PROMOTION_WITH_CAPTURING:
-            self.remove_piece(move.position_to)
-            self.remove_piece(move.position_from)
-            self.set_piece(self.chess_engine.board.piece_at(move.position_to))
-        else:
-            self.move_piece(move.position_from, move.position_to)
+        self.move_piece(move.position_from, move.position_to)
 
     def set_piece(self, piece: Piece):
         self._fields[piece.position] = self.canvas.create_image(
-            self.margin + self.field_margin + piece.position.x * self.field_size,
-            self.margin + self.field_margin + self.board_size - (piece.position.y + 1) * self.field_size,
+            self.margin + self.field_padding + piece.position.x * self.field_size,
+            self.margin + self.field_padding + self.board_size - (piece.position.y + 1) * self.field_size,
             image=self.pieces[piece.team][piece.type], anchor=NW
         )
 

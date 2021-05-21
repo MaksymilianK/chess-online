@@ -1,9 +1,11 @@
 import json
+import logging
 from enum import Enum
 from typing import Optional
 
 from client.connection.connection_manager import ConnectionManager
 from client.connection.player import Player
+from shared.game.game_type import GameType, GAME_TYPES_BY_NAME
 from shared.message.message_code import MessageCode
 from shared.validators.player_validators import nick_valid, email_valid, password_valid
 
@@ -17,7 +19,7 @@ class PlayerValidationStatus(Enum):
 
 class AuthService:
     def __init__(self, connection_manager: ConnectionManager):
-        self.current: Optional[Player] = None
+        self._current: Optional[Player] = None
         self._connection_manager = connection_manager
 
     def sign_up(self, nick: str, email: str, password: str) -> PlayerValidationStatus:
@@ -50,3 +52,16 @@ class AuthService:
         }))
 
         return PlayerValidationStatus.VALID
+
+    @property
+    def current(self) -> Optional[Player]:
+        return self._current
+
+    @current.setter
+    def current(self, player_dict: dict):
+        logging.fatal(player_dict)
+        elo: dict[GameType, int] = {}
+        for game_type_name, elo_value in player_dict["elo"].items():
+            elo[GAME_TYPES_BY_NAME[game_type_name]] = elo_value
+
+        self._current = Player(player_dict["nick"], elo)

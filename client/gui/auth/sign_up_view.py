@@ -3,11 +3,13 @@ from typing import Callable
 
 import platform
 
-from client.gui.error_message import VALIDATION_MESSAGES
+from client.gui.error_message import VALIDATION_MESSAGES, AUTH_MESSAGES
 from client.gui.menu.menu import menu_frame, menu_title
+from client.gui.menu.player_component import PlayerComponent
 from client.gui.view import View, ViewName
 from client.connection.auth_service import AuthService, PlayerValidationStatus
 from client.gui.shared import DisplayBoundary, PrimaryButton, TextButton, FormLabel, FormEntry, SecondaryButton
+from shared.message.auth_status import STATUS_BY_CODE, AuthStatus
 
 if platform.system() == "Darwin":
     from tkmacosx import Button
@@ -15,8 +17,8 @@ if platform.system() == "Darwin":
 
 class SignUpView(View):
     def __init__(self, root: Tk, display: DisplayBoundary, navigate: Callable[[ViewName, ViewName], None],
-                 auth_service: AuthService):
-        super().__init__(root, display, navigate, auth_service)
+                 auth_service: AuthService, player_component: PlayerComponent):
+        super().__init__(root, display, navigate, auth_service, player_component)
 
         self.frame = menu_frame(root, display)
         self.frame.columnconfigure(0, weight=1)
@@ -74,14 +76,19 @@ class SignUpView(View):
             self.email_entry.get(),
             self.password_entry.get()
         )
-        if validation_status != PlayerValidationStatus.VALID:
+        if validation_status == PlayerValidationStatus.VALID:
+            self.error_text.set("")
+        else:
             self.error_text.set(VALIDATION_MESSAGES[validation_status])
-            return
-
-        self.navigate(ViewName.START)
 
     def on_sign_up(self, message: dict):
-        pass
+        status = STATUS_BY_CODE[message["status"]]
+        if status == AuthStatus.SUCCESS:
+            self.auth_service.current = message["player"]
+            self.player_component.update()
+            self.navigate(ViewName.START)
+        else:
+            self.error_text.set(AUTH_MESSAGES[status])
 
     def reset(self):
         self.nick_entry.delete(0, END)

@@ -2,6 +2,7 @@ from tkinter import Tk
 from typing import Callable
 
 from client.gui.menu.menu import menu_frame, menu_title
+from client.gui.menu.player_component import PlayerComponent
 from client.gui.view import View, ViewName
 from client.connection.auth_service import AuthService
 from client.gui.shared import DisplayBoundary, PrimaryButton, SecondaryButton
@@ -9,8 +10,8 @@ from client.gui.shared import DisplayBoundary, PrimaryButton, SecondaryButton
 
 class StartView(View):
     def __init__(self, root: Tk, display: DisplayBoundary, navigate: Callable[[ViewName], None],
-                 auth_service: AuthService):
-        super().__init__(root, display, navigate, auth_service)
+                 auth_service: AuthService, player_component: PlayerComponent):
+        super().__init__(root, display, navigate, auth_service, player_component)
 
         self.frame = menu_frame(root, display)
         self.frame.columnconfigure(0, weight=1)
@@ -40,4 +41,5 @@ class StartView(View):
         pass
 
     def show(self):
+        self.player_component.button.tkraise()
         self.frame.tkraise()

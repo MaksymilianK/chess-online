@@ -22,17 +22,16 @@ class ConnectionManager:
         self._notify_message = notify_message
 
     def connect(self, message: str):
-        logging.fatal("trying connect")
         self._loop.call_soon_threadsafe(lambda: asyncio.gather(self._connect(message)))
 
     async def _connect(self, message: str):
         try:
             async with websockets.connect("ws://localhost:80") as websocket:
-                logging.fatal("connected")
                 self._websocket = websocket
                 await websocket.send(message)
 
                 async for message in websocket:
+                    logging.fatal(message)
                     self._notify_message(message)
         except ConnectionClosedError as e:
             if e.code == 4000:

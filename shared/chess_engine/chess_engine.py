@@ -1,11 +1,12 @@
 from typing import Optional
 
-from shared.chessboard import Piece, Chessboard, on_same_line, on_same_row, within_board, \
-    is_between, SECOND_RANK, FIRST_RANK, on_same_diagonal, unit_vector_to, on_same_color
-from shared.move import AbstractMove, Move, EnPassant, Capturing, Promotion, PromotionWithCapturing, Castling, MoveType
-from shared.move_history import MoveHistory, BoardSnapshot, CastleRight
-from shared.position import Vector2d, distance_y
-from shared.piece import Team, Pawn, Knight, King, PieceType, Bishop, Rook, Queen
+from shared.chess_engine.chessboard import Chessboard, on_same_color, within_board, SECOND_RANK, unit_vector_to, \
+    on_same_line, is_between, on_same_diagonal, on_same_row, FIRST_RANK
+from shared.chess_engine.move import AbstractMove, MoveType, Promotion, Move, PromotionWithCapturing, Capturing, \
+    EnPassant, Castling
+from shared.chess_engine.move_history import MoveHistory, BoardSnapshot, CastleRight
+from shared.chess_engine.piece import Piece, PieceType, Team, Knight, Pawn, Bishop, Rook, King, Queen
+from shared.chess_engine.position import Vector2d, distance_y
 
 
 class CheckStatus:
@@ -117,7 +118,7 @@ class ChessEngine:
 
     def _board_snapshot(self):
         return BoardSnapshot(
-            {p.position: p.type for p in self.board.pieces[Team.WHITE].all + self.board.pieces[Team.BLACK].all},
+            {p.position: (p.type, p.team) for p in self.board.pieces[Team.WHITE].all + self.board.pieces[Team.BLACK].all},
             self.currently_moving_team,
             self._castle_rights(),
             self._en_passant_available()

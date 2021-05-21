@@ -2,15 +2,15 @@ from enum import Enum
 
 
 class GameType(Enum):
-    BLITZ = 1
-    RAPID = 2
-    CLASSIC = 3
+    BLITZ = "BLITZ"
+    RAPID = "RAPID"
+    CLASSIC = "CLASSIC"
 
 
-GAME_TYPES_BY_CODE = {
-    1: GameType.BLITZ,
-    2: GameType.RAPID,
-    3: GameType.CLASSIC
+GAME_TYPES_BY_NAME = {
+    "BLITZ": GameType.BLITZ,
+    "RAPID": GameType.RAPID,
+    "CLASSIC": GameType.CLASSIC
 }
 
 
