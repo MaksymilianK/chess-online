@@ -8,10 +8,10 @@ import platform
 if platform.system() == "Darwin":
     from tkmacosx import Button
 
-from shared.position import Vector2d
-from shared.piece import Team, PieceType, Piece
-from shared.move import AbstractMove, MoveType
-from shared.chess_engine import ChessEngine
+from shared.chess_engine.position import Vector2d
+from shared.chess_engine.piece import Team, PieceType, Piece
+from shared.chess_engine.move import AbstractMove, MoveType
+from shared.chess_engine.chess_engine import ChessEngine
 
 
 class ChessboardVisualizer:
@@ -61,9 +61,9 @@ class ChessboardVisualizer:
 
         file_to_piece_type = {"king.png": PieceType.KING, "queen.png": PieceType.QUEEN, "knight.png": PieceType.KNIGHT,
                               "bishop.png": PieceType.BISHOP, "rook.png": PieceType.ROOK, "pawn.png": PieceType.PAWN}
-        path_to_team = {"./img/white/": Team.WHITE, "./img/black/": Team.BLACK}
+        path_to_team = {"client/img/white/": Team.WHITE, "client/img/black/": Team.BLACK}
 
-        for path in ["./img/white/", "./img/black/"]:
+        for path in ["client/img/white/", "client/img/black/"]:
             files = os.listdir(path)
             for file in files:
                 img = Image.open(path + file)

@@ -3,17 +3,27 @@ from __future__ import annotations
 from abc import abstractmethod, ABC
 from enum import Enum, auto
 
-from shared.position import Vector2d
-from shared.piece import PieceType
+from shared.chess_engine.position import Vector2d
+from shared.chess_engine.piece import PieceType
 
 
 class MoveType(Enum):
-    MOVE = auto()
-    CAPTURING = auto()
-    CASTLING = auto()
-    EN_PASSANT = auto()
-    PROMOTION = auto()
-    PROMOTION_WITH_CAPTURING = auto()
+    MOVE = 1
+    CAPTURING = 2
+    CASTLING = 3
+    EN_PASSANT = 4
+    PROMOTION = 5
+    PROMOTION_WITH_CAPTURING = 6
+
+
+MOVE_TYPES_BY_CODE = {
+    1: MoveType.MOVE,
+    2: MoveType.CAPTURING,
+    3: MoveType.CASTLING,
+    4: MoveType.EN_PASSANT,
+    5: MoveType.PROMOTION,
+    6: MoveType.PROMOTION_WITH_CAPTURING
+}
 
 
 class AbstractMove(ABC):
