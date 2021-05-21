@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import time
 from collections import OrderedDict
 
@@ -46,6 +47,7 @@ class ConnectionPool:
             await asyncio.sleep(2)
 
     async def on_message(self, message: str, websocket: WebSocketServerProtocol):
+        logging.fatal(message)
         try:
             if websocket in self._anonymous:
                 player = await self._message_broker.on_anonymous_message(message, websocket)

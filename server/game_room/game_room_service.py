@@ -12,7 +12,7 @@ from shared.chess_engine.move import MOVE_TYPES_BY_CODE, MoveType, Move, Capturi
     PromotionWithCapturing
 from shared.chess_engine.piece import PIECE_TYPES_FROM_CODE
 from shared.chess_engine.position import Vector2d
-from shared.game.game_type import GameType, GAME_TYPES_BY_CODE
+from shared.game.game_type import GameType, GAME_TYPES_BY_NAME
 from shared.game.ranking import PlayerScore, elo_change
 from shared.message.message_code import MessageCode
 from shared.message.private_room_joining_status import PrivateRoomJoiningStatus
@@ -114,10 +114,10 @@ class GameRoomService:
                 await room.host.send(message)
 
     async def join_ranked_queue(self, message: dict, sender: Player):
-        assert_in(message, ("gameType", int))
+        assert_in(message, ("gameType", str))
 
         try:
-            game_type = GAME_TYPES_BY_CODE[message["gameType"]]
+            game_type = GAME_TYPES_BY_NAME[message["gameType"]]
         except KeyError:
             raise InvalidRequestException("unknown game type")
 
@@ -250,9 +250,9 @@ class GameRoomService:
         if not room.guest:
             return
 
-        assert_in(message, ("gameType", int))
+        assert_in(message, ("gameType", str))
         try:
-            game_type = GAME_TYPES_BY_CODE[message["gameType"]]
+            game_type = GAME_TYPES_BY_NAME[message["gameType"]]
         except KeyError:
             raise InvalidRequestException("unknown game type")
 

@@ -3,6 +3,7 @@ import re
 from typing import Optional
 
 import argon2
+from argon2.exceptions import VerifyMismatchError
 from websockets import WebSocketServerProtocol
 
 from server.player.player_repo import PlayerRepository
@@ -80,7 +81,9 @@ class AuthService:
             }))
             return None
 
-        if not self._password_hasher.verify(model.password_hash, password):
+        try:
+            self._password_hasher.verify(model.password_hash, password)
+        except VerifyMismatchError:
             await websocket.close(code=4000, reason=json.dumps({
                 "code": MessageCode.SIGN_IN.value,
                 "status": AuthStatus.WRONG_PASSWORD.value

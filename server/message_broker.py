@@ -48,8 +48,6 @@ class MessageBroker:
         message = _message_to_json(message_str)
         code = message["code"]
 
-        logging.fatal(message_str)
-
         if code == MessageCode.SIGN_UP.value:
             return await self._auth_service.sign_up(message, websocket)
         elif code == MessageCode.SIGN_IN.value:
