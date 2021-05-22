@@ -17,9 +17,10 @@ if platform.system() == "Darwin":
 
 class SignUpView(View):
     def __init__(self, root: Tk, display: DisplayBoundary, navigate: Callable[[ViewName, ViewName], None],
-                 auth_service: AuthService):
+                 auth_service: AuthService, player_component: PlayerComponent):
         super().__init__(root, display, navigate, auth_service)
 
+        self.player_component = player_component
         self.frame = menu_frame(root, display)
         self.frame.columnconfigure(0, weight=1)
         self.frame.columnconfigure(1, weight=1)

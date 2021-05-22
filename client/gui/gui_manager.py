@@ -54,8 +54,8 @@ class GuiManager:
         player_component = PlayerComponent(self.root, display, auth_service)
 
         self.views = {
-            ViewName.SIGN_IN: SignInView(self.root, display, self.navigate, auth_service),
-            ViewName.SIGN_UP: SignUpView(self.root, display, self.navigate, auth_service),
+            ViewName.SIGN_IN: SignInView(self.root, display, self.navigate, auth_service, player_component),
+            ViewName.SIGN_UP: SignUpView(self.root, display, self.navigate, auth_service, player_component),
             ViewName.START: StartView(self.root, display, self.navigate, auth_service, player_component),
             ViewName.JOIN_RANKED: JoinRankedView(self.root, display, self.navigate, auth_service, player_component,
                                                  game_room_service),
@@ -65,7 +65,7 @@ class GuiManager:
         self.bg = tk.Label(self.root, image=self.bg_img)
         self.bg.place(x=0, y=0, relwidth=1, relheight=1)
 
-        self.current_view = self.views[ViewName.RANKED_GAME]
+        self.current_view = self.views[ViewName.SIGN_IN]
         self.current_view.show()
 
         self.root.bind("<<message>>", self._on_message)
