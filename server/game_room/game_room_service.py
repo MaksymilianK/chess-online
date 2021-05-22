@@ -1,5 +1,6 @@
 import asyncio
 import json
+import logging
 import random
 from typing import Optional, Coroutine
 
@@ -447,7 +448,7 @@ class GameRoomService:
 
     async def match_players(self):
         rooms: list[Coroutine] = []
-
+        logging.fatal("matching")
         for game_type in GameType:
             left: Optional[Player] = None
             for bucket in self.ranked_queue[game_type]:
