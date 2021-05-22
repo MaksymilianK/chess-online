@@ -20,7 +20,7 @@ class ChessboardVisualizer:
         self.root = root
         self.display = display
 
-        self.table = Frame(self.root, bg="#222222")
+        self.table = Frame(self.root, bg="#ffffff")
         self.table_size = 8 / 9 * display.height
         self.table.place(x=display.x + 1 / 16 * display.width, y=display.y + 0.5 / 9 * display.height,
                          width=self.table_size, height=self.table_size)
@@ -46,7 +46,7 @@ class ChessboardVisualizer:
         self.promotion_menu_pieces = {0: PieceType.KNIGHT, 1: PieceType.BISHOP, 2: PieceType.ROOK, 3: PieceType.QUEEN}
 
         self.chess_engine = ChessEngine()
-        self.canvas = Canvas(self.table, width=self.board_size, height=self.board_size, borderwidth=0,
+        self.canvas = Canvas(self.table, width=self.board_size + 1, height=self.board_size + 1, borderwidth=0,
                              highlightthickness=0)
         self.canvas.place(x=self.board_margin, y=self.board_margin)
         self.init_board()

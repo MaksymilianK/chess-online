@@ -24,10 +24,8 @@ class GuiManager:
         self._messages: Queue[str] = Queue()
         self.root = tk.Tk()
 
-        if platform.system() == "Windows":
-            self.root.attributes("-fullscreen", True)
-        else:
-            self.root.attributes("-zoomed", True)
+        self.root.attributes("-fullscreen", True)
+        self.root.geometry(f"{self.root.winfo_screenwidth()}x{self.root.winfo_screenheight()}")
 
         self.root.resizable(False, False)
         self.root.title("Chess Online")

@@ -328,7 +328,8 @@ class ChessEngine:
     def _will_move_reveal_king(self, pos_from: Vector2d, pos_to: Vector2d) -> bool:
         king_pos = self._current_king_position()
 
-        if not on_same_line(king_pos, pos_from) or on_same_line(king_pos, pos_from, pos_to):
+        if not on_same_line(king_pos, pos_from) or on_same_line(king_pos, pos_from, pos_to) \
+                or self.board.any_piece_between(king_pos, pos_from):
             return False
 
         revealed_piece = self.board.next_piece_on_line(king_pos, pos_from)
