@@ -13,7 +13,9 @@ from shared.game.game_type import GameType
 class JoinRankedView(View):
     def __init__(self, root: tk.Tk, display: DisplayBoundary, navigate: Callable[[ViewName], None],
                  auth_service: AuthService, player_component: PlayerComponent, game_room_service: GameRoomService):
-        super().__init__(root, display, navigate, auth_service, player_component)
+        super().__init__(root, display, navigate, auth_service)
+
+        self.player_component = player_component
 
         self.game_room_service = game_room_service
         self.joining = False
@@ -56,14 +58,23 @@ class JoinRankedView(View):
 
     def back(self):
         if self.joining:
+            self.game_room_service.cancel_joining_ranked()
+        else:
             self.navigate(ViewName.START)
 
     def on_join_ranked_queue(self):
         self.join_btn["state"] = "disabled"
         self.join_btn["text"] = "In queue..."
+
+    def on_cancel_joining_ranked(self):
+        self.navigate(ViewName.START)
+
+    def on_joined_ranked_room(self, message: dict):
+        self.game_room_service.room = message
         self.navigate(ViewName.RANKED_GAME)
 
     def reset(self):
+        self.joining = False
         self.join_btn["state"] = "normal"
         self.join_btn["text"] = "Join"
 

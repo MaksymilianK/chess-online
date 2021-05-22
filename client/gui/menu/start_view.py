@@ -11,7 +11,9 @@ from client.gui.shared import DisplayBoundary, PrimaryButton, SecondaryButton
 class StartView(View):
     def __init__(self, root: Tk, display: DisplayBoundary, navigate: Callable[[ViewName], None],
                  auth_service: AuthService, player_component: PlayerComponent):
-        super().__init__(root, display, navigate, auth_service, player_component)
+        super().__init__(root, display, navigate, auth_service)
+
+        self.player_component = player_component
 
         self.frame = menu_frame(root, display)
         self.frame.columnconfigure(0, weight=1)

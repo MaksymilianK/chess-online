@@ -18,12 +18,11 @@ class ViewName(Enum):
 
 class View(ABC):
     def __init__(self, root: Tk, display: DisplayBoundary, navigate: Callable[[ViewName], None],
-                 auth_service: AuthService, player_component: PlayerComponent):
+                 auth_service: AuthService):
         self.root = root
         self.display = display
         self.navigate = navigate
         self.auth_service = auth_service
-        self.player_component = player_component
 
     @abstractmethod
     def reset(self):

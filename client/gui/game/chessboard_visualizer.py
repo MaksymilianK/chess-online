@@ -18,13 +18,20 @@ if platform.system() == "Darwin":
 class ChessboardVisualizer:
     def __init__(self, root: Tk, display: DisplayBoundary):
         self.root = root
+        self.display = display
 
-        self.board_size = round(8/9*display.height)
+        self.table = Frame(self.root, bg="#222222")
+        self.table_size = 8 / 9 * display.height
+        self.table.place(x=display.x + 1 / 16 * display.width, y=display.y + 0.5 / 9 * display.height,
+                         width=self.table_size, height=self.table_size)
+
+        self.board_margin = 10
+        self.board_size = round(self.table_size - 2 * self.board_margin)
         while self.board_size % 8 != 0:
-            self.board_size += 1
+            self.board_size -= 1
         self.field_size = self.board_size // 8
 
-        self.field_padding = round(self.field_size * 0.05)
+        self.field_padding = round(0.05 * self.field_size)
         self.piece_size = self.field_size - 2 * self.field_padding
 
         self.pieces: dict[Team, dict[PieceType, ImageTk.PhotoImage]] = {Team.WHITE: {}, Team.BLACK: {}}
@@ -36,15 +43,16 @@ class ChessboardVisualizer:
 
         self.menu = None
 
-        self.margin = 10
-        self.canvas_size = self.board_size + 2 * self.margin
-
-        self.canvas = Canvas(root, width=self.canvas_size, height=self.canvas_size)
-        self.canvas.place(x=display.x + 1/18 * display.height - self.margin, y=display.y + 1/18 * display.height - self.margin)
+        self.promotion_menu_pieces = {0: PieceType.KNIGHT, 1: PieceType.BISHOP, 2: PieceType.ROOK, 3: PieceType.QUEEN}
 
         self.chess_engine = ChessEngine()
+        self.canvas = Canvas(self.table, width=self.board_size, height=self.board_size, borderwidth=0,
+                             highlightthickness=0)
+        self.canvas.place(x=self.board_margin, y=self.board_margin)
         self.init_board()
+
         self.canvas.bind("<Button-1>", self.handle_canvas_click_event)
+        self.promotion_menu = self.init_promotion_menu()
 
     def init_board(self):
         self.import_pieces()
@@ -104,53 +112,39 @@ class ChessboardVisualizer:
 
         self.clear_available_moves()
         for available_move in self.chess_engine.available_moves(piece_at):
-            x = self.margin + field_center + available_move.position_to.x * self.field_size
-            y = self.margin + field_center + self.board_size - (available_move.position_to.y + 1) * self.field_size
+            x = field_center + available_move.position_to.x * self.field_size
+            y = field_center + self.board_size - (available_move.position_to.y + 1) * self.field_size
             self.set_available_move(x, y, radius)
 
-    def display_promotion_menu(self, team: Team):
-        """
-        Shows up the menu to choose what piece to promote the pawn to
-        :param team:
-        :return:
-        """
+    def init_promotion_menu(self):
+        team = self.chess_engine.currently_moving_team
 
-        self.menu = Toplevel()
-        self.menu.title("Choose what to promote your pawn to")
+        promotion_menu = Frame(self.root, bg="#000000")
+        promotion_menu.place(x=self.display.x + self.board_margin + 2 * self.field_size,
+                             y=self.display.y + self.board_margin + 1.5 * self.field_size,
+                             width=2 * self.field_padding + 4 * self.piece_size,
+                             height=2 * self.field_padding + self.piece_size)
 
-        canvas = Canvas(self.menu, width=420, height=140)
-        canvas.pack()
+        canvas = Canvas(promotion_menu, width=4 * self.piece_size, height=self.piece_size,
+                        borderwidth=0, highlightthickness=0)
+        canvas.place(x=self.field_padding, y=self.field_padding)
 
-        canvas.create_image(20, 20, image=self.pieces[team][PieceType.BISHOP], anchor=NW)
-        canvas.create_image(120, 20, image=self.pieces[team][PieceType.KNIGHT], anchor=NW)
-        canvas.create_image(220, 20, image=self.pieces[team][PieceType.ROOK], anchor=NW)
-        canvas.create_image(320, 20, image=self.pieces[team][PieceType.QUEEN], anchor=NW)
+        for i, piece_type in self.promotion_menu_pieces.items():
+            canvas.create_image(self.piece_size * i, 0, image=self.pieces[team][piece_type], anchor=NW)
 
-        canvas.bind("<Button-1>", self.handle_promotion_menu_click_event)
+        canvas.bind("<Button-1>", self.handle_promotion_menu_click)
+        return promotion_menu
 
-        self.menu.mainloop()
+    def display_promotion_menu(self):
+        self.promotion_menu.tkraise()
+
+    def handle_promotion_menu_click(self, event: EventType):
+        self._promotion_move.piece_type = self.promotion_menu_pieces[event.x // self.piece_size]
+        self.process_promotion()
 
     def field_coords(self, pos: Vector2d) -> Optional[Vector2d]:
-        if self.margin < pos.x < self.margin + self.board_size and self.margin < pos.y < self.margin + self.board_size:
-            coords = (pos - Vector2d(self.margin, self.margin)) // self.field_size
-            return Vector2d(coords.x, 7 - coords.y)
-        return None
-
-    def handle_promotion_menu_click_event(self, event: EventType):
-        if 20 < event.x < 100 and 20 < event.y < 100:
-            self._promotion_move.piece_type = PieceType.BISHOP
-            self.menu.destroy()
-        elif 120 < event.x < 200 and 20 < event.y < 100:
-            self._promotion_move.piece_type = PieceType.KNIGHT
-            self.menu.destroy()
-        elif 220 < event.x < 300 and 20 < event.y < 100:
-            self._promotion_move.piece_type = PieceType.ROOK
-            self.menu.destroy()
-        elif 320 < event.x < 400 and 20 < event.y < 100:
-            self._promotion_move.piece_type = PieceType.QUEEN
-            self.menu.destroy()
-
-        self.process_promotion()
+        coords = (pos // self.field_size)
+        return Vector2d(coords.x, 7 - coords.y)
 
     def handle_canvas_click_event(self, event: EventType):
         position = self.field_coords(Vector2d(event.x, event.y))
@@ -197,6 +191,7 @@ class ChessboardVisualizer:
             self.set_piece(self.chess_engine.board.piece_at(self._promotion_move.position_to))
 
         self._promotion_move = None
+        self.table.tkraise()
 
     def process_move(self, move: AbstractMove):
         if not self.chess_engine.validate_move(move):
@@ -204,7 +199,7 @@ class ChessboardVisualizer:
 
         if move.type == MoveType.PROMOTION or move.type == MoveType.PROMOTION_WITH_CAPTURING:
             self._promotion_move = move
-            self.display_promotion_menu(self.chess_engine.board.piece_at(move.position_from).team)
+            self.display_promotion_menu()
             return
 
         self.chess_engine.process_move(move)
@@ -221,17 +216,17 @@ class ChessboardVisualizer:
 
     def set_piece(self, piece: Piece):
         self._fields[piece.position] = self.canvas.create_image(
-            self.margin + self.field_padding + piece.position.x * self.field_size,
-            self.margin + self.field_padding + self.board_size - (piece.position.y + 1) * self.field_size,
+            self.field_padding + piece.position.x * self.field_size,
+            self.field_padding + self.board_size - (piece.position.y + 1) * self.field_size,
             image=self.pieces[piece.team][piece.type], anchor=NW
         )
 
     def set_field(self, row, column, color):
         self.canvas.create_rectangle(
-            self.margin + column * self.field_size,
-            self.margin + self.board_size - row * self.field_size,
-            self.margin + (column + 1) * self.field_size,
-            self.margin + self.board_size - (row + 1) * self.field_size,
+            column * self.field_size,
+            self.board_size - row * self.field_size,
+            (column + 1) * self.field_size,
+            self.board_size - (row + 1) * self.field_size,
             fill=color
         )
 

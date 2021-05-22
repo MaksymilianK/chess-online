@@ -1,4 +1,5 @@
 import json
+from typing import Optional
 
 from client import ConnectionManager
 from shared.chess_engine.move import AbstractMove, MoveType
@@ -7,6 +8,7 @@ from shared.message.message_code import MessageCode
 
 class GameRoomService:
     def __init__(self, connection_manager: ConnectionManager):
+        self.room_message: Optional[dict] = None
         self._connection_manager = connection_manager
 
     def join_ranked_queue(self, game_type: str):
