@@ -1,11 +1,12 @@
 import asyncio
+import logging
 import time
 from asyncio import Future
 from typing import Optional, Coroutine, Callable
 
 from shared.chess_engine.piece import Team, opposite_team
 
-FIRST_MOVE_TIME_MS = 30
+FIRST_MOVE_TIME_MS = 30 * 1000
 
 
 class GameTimer:
@@ -26,7 +27,7 @@ class GameTimer:
         if self._is_first_move:
             self._is_first_move = False
         else:
-            time_passed = (now - self._move_start)
+            time_passed = (now - self._move_start) // 1_000_000
             self.times_left[self.current_team] -= time_passed
 
         time_left = self.times_left[self.current_team]
@@ -41,11 +42,13 @@ class GameTimer:
         self._current_job.cancel()
 
     def _start(self):
+        logging.fatal("start")
         self._measure(FIRST_MOVE_TIME_MS)
         self._is_first_move = True
         self.current_team = Team.WHITE
 
     def _measure(self, delay_ms: int):
+        logging.fatal("measure")
         self._current_job = asyncio.ensure_future(self._call_after_delay(delay_ms))
 
     async def _call_after_delay(self, delay_ms: int):

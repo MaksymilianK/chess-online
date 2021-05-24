@@ -32,7 +32,7 @@ async def _on_private_time_end(game_end_status: GameEndStatus):
     message_str = json.dumps({
         "code": MessageCode.GAME_TIME_END.value
     })
-    await asyncio.gather(*[game_end_status.winner.send(message_str), game_end_status.loser.send(message_str)])
+    await asyncio.gather(game_end_status.winner.send(message_str), game_end_status.loser.send(message_str))
 
 
 def _parse_move(position_from: Vector2d, position_to: Vector2d) -> Move:
@@ -44,7 +44,7 @@ def _parse_capturing(position_from: Vector2d, position_to: Vector2d) -> Capturin
 
 
 def _parse_castling(move_message: dict, position_from: Vector2d, position_to: Vector2d) -> Castling:
-    assert_in(move_message, ("rookFrom", tuple), ("rookTo", tuple))
+    assert_in(move_message, ("rookFrom", list), ("rookTo", list))
     return Castling(
         position_from,
         position_to,
@@ -54,7 +54,7 @@ def _parse_castling(move_message: dict, position_from: Vector2d, position_to: Ve
 
 
 def _parse_en_passant(move_message: dict, position_from: Vector2d, position_to: Vector2d) -> EnPassant:
-    assert_in(move_message, ("capturedPosition", tuple))
+    assert_in(move_message, ("capturedPosition", list))
     return EnPassant(
         position_from,
         position_to,
@@ -188,12 +188,18 @@ class GameRoomService:
 
         self.private_rooms_by_player[sender] = room
         room.guest = sender
-        await room.send(json.dumps({
-            "code": MessageCode.JOIN_PRIVATE_ROOM.value,
-            "status": PrivateRoomJoiningStatus.SUCCESS.value,
-            "accessKey": room.access_key,
-            "host": room.host.as_response()
-        }))
+        await asyncio.gather(
+            room.guest.send(json.dumps({
+                "code": MessageCode.JOIN_PRIVATE_ROOM.value,
+                "status": PrivateRoomJoiningStatus.SUCCESS.value,
+                "accessKey": room.access_key,
+                "host": room.host.as_response()
+            })),
+            room.host.send(json.dumps({
+                "code": MessageCode.GUEST_JOINED_PRIVATE_ROOM.value,
+                "guest": room.guest.as_response()
+            }))
+        )
 
     async def leave_private_room(self, _: dict, sender: Player):
         try:
@@ -201,6 +207,7 @@ class GameRoomService:
         except KeyError:
             return
 
+        guest = room.guest
         if sender is room.host:
             player_who_left = room.host
             self._remove_private(room)
@@ -214,8 +221,8 @@ class GameRoomService:
             "player": player_who_left.as_response()
         })
         messages = [room.host.send(message_str)]
-        if player_who_left is not room.host:
-            messages.append(player_who_left.send(message_str))
+        if guest:
+            messages.append(guest.send(message_str))
 
         await asyncio.gather(*messages)
 
@@ -286,8 +293,7 @@ class GameRoomService:
 
         if room.runner.on_draw_offer(sender):
             await room.send(json.dumps({
-                "code": MessageCode.GAME_OFFER_DRAW.value,
-                "player": sender.as_response()
+                "code": MessageCode.GAME_OFFER_DRAW.value
             }))
 
     async def respond_to_draw_offer(self, message: dict, sender: Player):
@@ -335,15 +341,16 @@ class GameRoomService:
         assert_in(move_message, ("type", int))
 
         try:
-            move_type = MOVE_TYPES_BY_CODE[message["type"]]
+            move_type = MOVE_TYPES_BY_CODE[move_message["type"]]
         except KeyError:
             raise InvalidRequestException("unrecognized move type")
-
-        assert_in(message, ("positionFrom", tuple), ("positionTo", tuple))
-        position_from, position_to = parse_vector(message["positionFrom"]), parse_vector(message["positionTo"])
+        assert_in(move_message, ("positionFrom", list), ("positionTo", list))
+        position_from, position_to = parse_vector(move_message["positionFrom"]), parse_vector(move_message["positionTo"])
 
         if move_type == MoveType.MOVE:
+            logging.fatal(move_type)
             move = _parse_move(position_from, position_to)
+            logging.fatal(move_type)
         elif move_type == MoveType.CAPTURING:
             move = _parse_capturing(position_from, position_to)
         elif move_type == MoveType.CASTLING:
@@ -359,13 +366,13 @@ class GameRoomService:
         if not move_status.successful:
             return
 
-        if room.type == GameRoomType.RANKED:
+        if move_status.game_end_status and room.type == GameRoomType.RANKED:
             await self._remove_ranked(move_status.game_end_status)
 
         await room.send(json.dumps({
             "code": MessageCode.GAME_MOVE.value,
             "move": move_message,
-            "time_left": move_status.player_time_left
+            "timeLeft": move_status.player_time_left
         }))
 
     def _generate_access_key(self) -> str:
@@ -389,7 +396,7 @@ class GameRoomService:
     def _room_by_player(self, player: Player) -> Optional[GameRoom]:
         if player in self.ranked_rooms:
             return self.ranked_rooms[player]
-        elif player in self.private_rooms_by_player[player]:
+        elif player in self.private_rooms_by_player:
             return self.private_rooms_by_player[player]
 
     async def _remove_ranked(self, game_end_status: GameEndStatus):
@@ -411,6 +418,7 @@ class GameRoomService:
             player2.elo[game_type],
             player1_score
         )
+        logging.fatal(player_elo_change)
         player1.elo[game_type] += player_elo_change
         player2.elo[game_type] -= player_elo_change
 
@@ -448,7 +456,6 @@ class GameRoomService:
 
     async def match_players(self):
         rooms: list[Coroutine] = []
-        logging.fatal("matching")
         for game_type in GameType:
             left: Optional[Player] = None
             for bucket in self.ranked_queue[game_type]:

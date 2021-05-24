@@ -69,4 +69,4 @@ class PlayerRepository:
         await self._collection.insert_one(model.as_doc())
 
     async def update_elo(self, nick: str, new_elo: int, game_type: GameType):
-        await self._collection.update_one({"nick": nick}, {f"elo.{game_type.value}": new_elo})
+        await self._collection.update_one({"nick": nick}, {"$set": {f"elo.{game_type.value}": new_elo}})

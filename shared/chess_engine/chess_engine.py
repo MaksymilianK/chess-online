@@ -1,11 +1,12 @@
 from typing import Optional
 
-from shared.chess_engine.chessboard import Piece, Chessboard, on_same_line, on_same_row, within_board, \
-    is_between, SECOND_RANK, FIRST_RANK, on_same_diagonal, unit_vector_to, on_same_color
-from shared.chess_engine.move import AbstractMove, Move, EnPassant, Capturing, Promotion, PromotionWithCapturing, Castling, MoveType
+from shared.chess_engine.chessboard import Chessboard, on_same_color, within_board, SECOND_RANK, unit_vector_to, \
+    on_same_line, is_between, on_same_diagonal, on_same_row, FIRST_RANK
+from shared.chess_engine.move import AbstractMove, MoveType, Promotion, Move, PromotionWithCapturing, Capturing, \
+    EnPassant, Castling
 from shared.chess_engine.move_history import MoveHistory, BoardSnapshot, CastleRight
-from shared.chess_engine.position import Vector2d, distance_y, centre
-from shared.chess_engine.piece import Team, Pawn, Knight, King, PieceType, Bishop, Rook, Queen
+from shared.chess_engine.piece import Piece, PieceType, Team, Knight, Pawn, Bishop, Rook, King, Queen
+from shared.chess_engine.position import Vector2d, distance_y
 
 
 class CheckStatus:
@@ -37,10 +38,10 @@ class ChessEngine:
     def available_moves(self, piece_at: Vector2d) -> list[AbstractMove]:
         piece = self.board.piece_at(piece_at)
         if piece is None:
-            raise Exception("Cannot move a piece at the specified field, because the piece is not there")
+            return []
 
         if not piece.team == self.currently_moving_team:
-            raise Exception("Cannot move a piece of the opponent's team")
+            return []
 
         if self.check_status.double_checked and piece.type != PieceType.KING:
             return []
@@ -226,7 +227,8 @@ class ChessEngine:
                     available_moves.append(Capturing(pawn.position, attack_pos))
             elif self._last_moving_piece() and self._last_moving_piece().type == PieceType.PAWN and distance_y(
                     self.move_history.last_move.position_from, self.move_history.last_move.position_to) == 2 \
-                    and self.move_history.last_move.position_to.x == attack_pos.x and attack_pos.y == centre():
+                    and self.move_history.last_move.position_to.x == attack_pos.x \
+                    and pawn.position.y == self.move_history.last_move.position_to.y:
                 available_moves.append(EnPassant(pawn.position, attack_pos, self.move_history.last_move.position_to))
 
         return available_moves
@@ -329,11 +331,12 @@ class ChessEngine:
     def _will_move_reveal_king(self, pos_from: Vector2d, pos_to: Vector2d) -> bool:
         king_pos = self._current_king_position()
 
-        if not on_same_line(king_pos, pos_from) or on_same_line(king_pos, pos_from, pos_to):
+        if not on_same_line(king_pos, pos_from) or on_same_line(king_pos, pos_from, pos_to) \
+                or self.board.any_piece_between(king_pos, pos_from):
             return False
 
         revealed_piece = self.board.next_piece_on_line(king_pos, pos_from)
-        if not revealed_piece:
+        if not revealed_piece or revealed_piece.team == self.currently_moving_team:
             return False
 
         if revealed_piece.type is PieceType.QUEEN:

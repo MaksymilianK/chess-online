@@ -1,3 +1,5 @@
+import asyncio
+import logging
 import random
 from typing import Optional, Coroutine, Callable
 
@@ -63,7 +65,6 @@ class GameRunner:
         self._engine = None
         self._draw_offer = None
         self.game_type = None
-        self._on_time_end = None
         self.teams = {}
 
     def on_surrender(self, player: Player) -> Optional[GameEndStatus]:
@@ -112,11 +113,14 @@ class GameRunner:
         if not self.running or self.teams[player] != self._engine.currently_moving_team \
                 or not self._engine.validate_move(move):
             return MoveStatus(False, -1)
+        logging.fatal("a")
 
         self._engine.process_move(move)
+        logging.fatal("b")
 
         game_type = self.game_type
         opposite_player = self._opposite_player(player)
+        logging.fatal("c")
 
         time_left = self.timer.next()
 
@@ -126,9 +130,11 @@ class GameRunner:
         elif self._engine.is_tie():
             self.clean()
             return MoveStatus(True, time_left, GameEndStatus(True, player, opposite_player, game_type))
+        logging.fatal("d")
 
-        if self._draw_offer != player:
+        if self._draw_offer and self._draw_offer != player:
             self._draw_offer = None
+        logging.fatal("e")
 
         return MoveStatus(True, time_left)
 
@@ -140,13 +146,18 @@ class GameRunner:
         opposite = self._opposite_player(player)
         game_type = self.game_type
 
-        self.clean()
+        self._draw_offer = None
+        self.game_type = None
+
         if self._engine.has_sufficient_material(self.teams[opposite]):
-            self.clean()
             await self._on_time_end(GameEndStatus(False, opposite, player, game_type))
         else:
-            self.clean()
             await self._on_time_end(GameEndStatus(True, opposite, player, game_type))
+
+        self.timer.cancel()
+        self.teams = {}
+        self._engine = None
+        self.timer = None
 
     def _opposite_player(self, player: Player) -> Player:
         return self._player_by_team(opposite_team(self.teams[player]))

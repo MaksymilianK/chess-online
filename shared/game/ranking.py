@@ -21,6 +21,6 @@ def elo_change(elo1: int, elo2: int, player_score: PlayerScore) -> int:
     the new elo ratings for both players.
     """
     expected_score = 1 / (1 + 10**((elo2 - elo1) / 400))
-    change = elo1 + K * (player_score.value - expected_score)
+    change = K * (player_score.value - expected_score)
     return round(change)
 
