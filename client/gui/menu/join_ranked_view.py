@@ -7,7 +7,7 @@ from client.gui.menu.player_component import PlayerComponent
 from client.gui.view import View, ViewName
 from client.connection.auth_service import AuthService
 from client.gui.shared import DisplayBoundary, PrimaryButton, SecondaryButton
-from shared.game.game_type import GameType
+from shared.game.game_type import GameType, GAME_TYPES_BY_NAME
 
 
 class JoinRankedView(View):
@@ -49,12 +49,12 @@ class JoinRankedView(View):
         self.join_btn = PrimaryButton(self.frame, text="Join", command=self.join_ranked_queue)
         self.join_btn.grid(column=0, row=4)
 
-        self.back_btn = SecondaryButton(self.frame, text="🠔 Back", command=self.back)
+        self.back_btn = SecondaryButton(self.frame, text="Back", command=self.back)
         self.back_btn.grid(column=0, row=5, sticky="WS")
 
     def join_ranked_queue(self):
         self.joining = True
-        self.game_room_service.join_ranked_queue(self.game_type.get())
+        self.game_room_service.join_ranked_queue(GAME_TYPES_BY_NAME[self.game_type.get()])
 
     def back(self):
         if self.joining:
@@ -70,7 +70,7 @@ class JoinRankedView(View):
         self.navigate(ViewName.START)
 
     def on_joined_ranked_room(self, message: dict):
-        self.game_room_service.room = message
+        self.game_room_service.on_join_ranked_room(message)
         self.navigate(ViewName.RANKED_GAME)
 
     def reset(self):

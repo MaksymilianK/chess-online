@@ -27,17 +27,13 @@ class StartView(View):
         self.quit_btn = SecondaryButton(self.frame, text="Quit", command=lambda: root.quit())
         self.quit_btn.grid(row=0, column=1, sticky="EN")
 
-        self.join_ranked_btn = PrimaryButton(self.frame, text="Join ranked", command=self.join_ranked)
+        self.join_ranked_btn = PrimaryButton(self.frame, text="Join ranked",
+                                             command=lambda: self.navigate(ViewName.JOIN_RANKED))
         self.join_ranked_btn.grid(row=1, column=0, columnspan=2, ipadx=10, ipady=5)
 
-        self.private_room_btn = PrimaryButton(self.frame, text="Private room", command=self.create_private_room)
+        self.private_room_btn = PrimaryButton(self.frame, text="Private room",
+                                              command=lambda: self.navigate(ViewName.JOIN_PRIVATE))
         self.private_room_btn.grid(row=2, column=0, columnspan=2, ipadx=10, ipady=5)
-
-    def join_ranked(self):
-        self.navigate(ViewName.JOIN_RANKED)
-
-    def create_private_room(self):
-        pass
 
     def reset(self):
         pass

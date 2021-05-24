@@ -4,8 +4,7 @@ from enum import Enum
 from typing import Optional
 
 from client.connection.connection_manager import ConnectionManager
-from client.connection.player import Player
-from shared.game.game_type import GameType, GAME_TYPES_BY_NAME
+from client.connection.player import Player, player_from_dict
 from shared.message.message_code import MessageCode
 from shared.validators.player_validators import nick_valid, email_valid, password_valid
 
@@ -60,8 +59,4 @@ class AuthService:
     @current.setter
     def current(self, player_dict: dict):
         logging.fatal(player_dict)
-        elo: dict[GameType, int] = {}
-        for game_type_name, elo_value in player_dict["elo"].items():
-            elo[GAME_TYPES_BY_NAME[game_type_name]] = elo_value
-
-        self._current = Player(player_dict["nick"], elo)
+        self._current = player_from_dict(player_dict)

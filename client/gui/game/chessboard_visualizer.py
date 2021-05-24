@@ -5,6 +5,7 @@ from PIL import Image, ImageTk
 import os
 import platform
 
+from client import GameRoomService
 from client.gui.shared import DisplayBoundary
 from shared.chess_engine.chess_engine import ChessEngine
 from shared.chess_engine.move import Promotion, MoveType, AbstractMove
@@ -16,9 +17,10 @@ if platform.system() == "Darwin":
 
 
 class ChessboardVisualizer:
-    def __init__(self, root: Tk, display: DisplayBoundary):
+    def __init__(self, root: Tk, display: DisplayBoundary, game_room_service: GameRoomService):
         self.root = root
         self.display = display
+        self.game_room_service = game_room_service
 
         self.table = Frame(self.root, bg="#ffffff")
         self.table_size = 8 / 9 * display.height
@@ -45,7 +47,6 @@ class ChessboardVisualizer:
 
         self.promotion_menu_pieces = {0: PieceType.KNIGHT, 1: PieceType.BISHOP, 2: PieceType.ROOK, 3: PieceType.QUEEN}
 
-        self.chess_engine = ChessEngine()
         self.canvas = Canvas(self.table, width=self.board_size + 1, height=self.board_size + 1, borderwidth=0,
                              highlightthickness=0)
         self.canvas.place(x=self.board_margin, y=self.board_margin)
@@ -54,10 +55,25 @@ class ChessboardVisualizer:
         self.canvas.bind("<Button-1>", self.handle_canvas_click_event)
         self.promotion_menu = self.init_promotion_menu()
 
+        self.engine: Optional[ChessEngine] = None
+
+    def start(self):
+        self.reset()
+        self.engine = self.game_room_service.room.engine
+        self.init_pieces()
+
+    def reset(self):
+        if not self.engine:
+            return
+
+        for _, pieces in self.engine.board.pieces.items():
+            for piece in pieces.all:
+                self.remove_piece(piece.position)
+        self.engine = None
+
     def init_board(self):
         self.import_pieces()
         self.init_fields()
-        self.init_pieces()
 
     def import_pieces(self):
         """
@@ -98,7 +114,7 @@ class ChessboardVisualizer:
         """
 
         for team in [Team.WHITE, Team.BLACK]:
-            for piece in self.chess_engine.board.pieces[team].all:
+            for piece in self.engine.board.pieces[team].all:
                 self.set_piece(piece)
 
     def clear_available_moves(self):
@@ -106,18 +122,22 @@ class ChessboardVisualizer:
             self.canvas.delete(currently_available_move)
         self._currently_available_moves = []
 
+    def get_visualized_position(self, position: Vector2d) -> Vector2d:
+        return Vector2d(7, 7) - position if self.game_room_service.current_team == Team.BLACK else position
+
     def display_available_moves(self, piece_at: Vector2d):
         radius = 10
         field_center = self.field_size // 2
 
         self.clear_available_moves()
-        for available_move in self.chess_engine.available_moves(piece_at):
-            x = field_center + available_move.position_to.x * self.field_size
-            y = field_center + self.board_size - (available_move.position_to.y + 1) * self.field_size
+        for available_move in self.engine.available_moves(piece_at):
+            position_to = self.get_visualized_position(available_move.position_to)
+            x = field_center + position_to.x * self.field_size
+            y = field_center + self.board_size - (position_to.y + 1) * self.field_size
             self.set_available_move(x, y, radius)
 
     def init_promotion_menu(self):
-        team = self.chess_engine.currently_moving_team
+        team = Team.WHITE
 
         promotion_menu = Frame(self.root, bg="#000000")
         promotion_menu.place(x=self.display.x + self.board_margin + 2 * self.field_size,
@@ -144,9 +164,12 @@ class ChessboardVisualizer:
 
     def field_coords(self, pos: Vector2d) -> Optional[Vector2d]:
         coords = (pos // self.field_size)
-        return Vector2d(coords.x, 7 - coords.y)
+        return self.get_visualized_position(Vector2d(coords.x, 7 - coords.y))
 
     def handle_canvas_click_event(self, event: EventType):
+        if not self.game_room_service.is_current_moving():
+            return
+
         position = self.field_coords(Vector2d(event.x, event.y))
 
         if not position or self._promotion_move:
@@ -156,14 +179,14 @@ class ChessboardVisualizer:
             if position == self._selected_piece:
                 self.clear_available_moves()
                 self._selected_piece = None
-            elif self._fields[position] and self.chess_engine.board.piece_at(
-                    position).team == self.chess_engine.currently_moving_team:
+            elif self._fields[position] and self.engine.board.piece_at(
+                    position).team == self.engine.currently_moving_team:
                 self._selected_piece = position
                 self.display_available_moves(position)
             else:
                 move = self.get_move(self._selected_piece, position)
                 if move:
-                    self.process_move(move)
+                    self.move(move)
                 else:
                     self.clear_available_moves()
                     self._selected_piece = None
@@ -173,36 +196,35 @@ class ChessboardVisualizer:
                 self._selected_piece = position
 
     def get_move(self, pos_from, pos_to) -> Optional[AbstractMove]:
-        for move in self.chess_engine.available_moves(pos_from):
+        for move in self.engine.available_moves(pos_from):
             if move.position_to == pos_to:
                 return move
         return None
 
     def process_promotion(self):
-        self.chess_engine.process_move(self._promotion_move)
+        self.engine.process_move(self._promotion_move)
         self.clear_available_moves()
 
         if self._promotion_move.type == MoveType.PROMOTION:
             self.remove_piece(self._promotion_move.position_from)
-            self.set_piece(self.chess_engine.board.piece_at(self._promotion_move.position_to))
+            self.set_piece(self.engine.board.piece_at(self._promotion_move.position_to))
         elif self._promotion_move.type == MoveType.PROMOTION_WITH_CAPTURING:
             self.remove_piece(self._promotion_move.position_to)
             self.remove_piece(self._promotion_move.position_from)
-            self.set_piece(self.chess_engine.board.piece_at(self._promotion_move.position_to))
+            self.set_piece(self.engine.board.piece_at(self._promotion_move.position_to))
 
         self._promotion_move = None
         self.table.tkraise()
 
-    def process_move(self, move: AbstractMove):
-        if not self.chess_engine.validate_move(move):
-            return
+    def move(self, move: AbstractMove):
+        self.game_room_service.game_move(move)
 
+    def process_move(self, move: AbstractMove):
         if move.type == MoveType.PROMOTION or move.type == MoveType.PROMOTION_WITH_CAPTURING:
             self._promotion_move = move
             self.display_promotion_menu()
             return
 
-        self.chess_engine.process_move(move)
         self.clear_available_moves()
 
         if move.type == MoveType.CAPTURING:
@@ -215,9 +237,10 @@ class ChessboardVisualizer:
         self.move_piece(move.position_from, move.position_to)
 
     def set_piece(self, piece: Piece):
+        visualized_position = self.get_visualized_position(piece.position)
         self._fields[piece.position] = self.canvas.create_image(
-            self.field_padding + piece.position.x * self.field_size,
-            self.field_padding + self.board_size - (piece.position.y + 1) * self.field_size,
+            self.field_padding + visualized_position.x * self.field_size,
+            self.field_padding + self.board_size - (visualized_position.y + 1) * self.field_size,
             image=self.pieces[piece.team][piece.type], anchor=NW
         )
 
@@ -240,6 +263,6 @@ class ChessboardVisualizer:
         self._fields[position] = None
 
     def move_piece(self, pos_from: Vector2d, pos_to: Vector2d):
-        piece = self.chess_engine.board.piece_at(pos_to)
+        piece = self.engine.board.piece_at(pos_to)
         self.remove_piece(pos_from)
         self.set_piece(piece)

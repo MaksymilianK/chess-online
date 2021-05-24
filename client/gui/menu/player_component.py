@@ -1,9 +1,9 @@
-from tkinter import Tk, Frame, Label, StringVar, LEFT
+from tkinter import Tk, LEFT
 
 from PIL import Image, ImageTk
 
 from client.connection.auth_service import AuthService
-from client.gui.shared import DisplayBoundary, SecondaryButton, PrimaryButton
+from client.gui.shared import DisplayBoundary, PrimaryButton
 
 
 class PlayerComponent:
@@ -13,8 +13,7 @@ class PlayerComponent:
         img = Image.open("client/img/player.png")
         img = img.resize((36, 36), Image.ANTIALIAS)
         self.image = ImageTk.PhotoImage(img)
-        self.nick = StringVar("")
-        self.button = PrimaryButton(root, textvar=self.nick, image=self.image, compound=LEFT,
+        self.button = PrimaryButton(root, text="", image=self.image, compound=LEFT,
                                     font=("Times New Roman", 14, "bold"))
         self.button.place(
             x=display.x + display.width - 0.2*display.width,
@@ -25,6 +24,6 @@ class PlayerComponent:
 
     def update(self):
         if self.auth_service.current:
-            self.nick.set(self.auth_service.current.nick)
+            self.button["text"] = self.auth_service.current.nick
         else:
-            self.nick.set("")
+            self.button["text"] = ""

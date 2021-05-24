@@ -7,7 +7,8 @@ from client.gui.menu.menu import menu_frame, menu_title
 from client.gui.menu.player_component import PlayerComponent
 from client.gui.view import View, ViewName
 from client.connection.auth_service import AuthService, PlayerValidationStatus
-from client.gui.shared import DisplayBoundary, PrimaryButton, TextButton, FormLabel, FormEntry, SecondaryButton
+from client.gui.shared import DisplayBoundary, PrimaryButton, TextButton, FormLabel, FormEntry, SecondaryButton, \
+    ErrorMessage
 from shared.message.auth_status import AuthStatus, STATUS_BY_CODE
 
 if platform.system() == "Darwin":
@@ -63,8 +64,7 @@ class SignInView(View):
         self.sign_in_btn.grid(row=6, column=1, sticky="WE")
 
         self.error_text = StringVar(self.frame, "")
-        self.error_msg = Message(self.frame, textvariable=self.error_text, font=("Times New Roman", 12, "bold"),
-                                 fg="#ff0000", bg="#ffffff", width=self.frame.winfo_width() - 150, anchor="w")
+        self.error_msg = ErrorMessage(self.frame, textvariable=self.error_text)
         self.error_msg.grid(row=7, column=0, columnspan=2, sticky="WS")
 
     def sign_in(self):

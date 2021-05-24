@@ -4,7 +4,7 @@ from client.gui.shared import DisplayBoundary
 
 
 def menu_frame(master, display_size: DisplayBoundary) -> Frame:
-    frame = Frame(master, bg="white", padx=0.05*display_size.width, pady=0.05*display_size.width)
+    frame = Frame(master, bg="white", padx=75, pady=75)
     frame.place(
         x=display_size.x + 0.15*display_size.width,
         y=display_size.y + 0.2*display_size.height,

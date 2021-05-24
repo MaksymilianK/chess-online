@@ -97,6 +97,9 @@ class ChessEngine:
         return not self.has_sufficient_material(Team.WHITE) and not self.has_sufficient_material(Team.BLACK) or \
                self.move_history.repeated_five_times()
 
+    def can_claim_draw(self) -> bool:
+        return self.move_history.repeated_three_times() or self.move_history.fifty_moves_rule_satisfied()
+
     def has_sufficient_material(self, team: Team) -> bool:
         other_team = Team.WHITE if team == Team.BLACK else Team.BLACK
 

@@ -5,13 +5,13 @@ from shared.chess_engine.position import Vector2d, UP, DOWN, UP_RIGHT, UP_LEFT, 
 
 
 class Team(Enum):
-    WHITE = 1
-    BLACK = 2
+    WHITE = "WHITE"
+    BLACK = "BLACK"
 
 
-TEAMS_BY_CODE = {
-    1: Team.WHITE,
-    2: Team.BLACK
+TEAMS_BY_NAME = {
+    "WHITE": Team.WHITE,
+    "BLACK": Team.BLACK
 }
 
 

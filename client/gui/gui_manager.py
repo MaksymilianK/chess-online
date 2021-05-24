@@ -6,7 +6,9 @@ from queue import Queue
 from PIL import ImageTk, Image
 
 from client.connection.game_room_service import GameRoomService
+from client.gui.game.private_game_view import PrivateGameView
 from client.gui.game.ranked_game_view import RankedGameView
+from client.gui.menu.join_private_view import JoinPrivateView
 from client.gui.menu.join_ranked_view import JoinRankedView
 from client.gui.menu.player_component import PlayerComponent
 from client.gui.menu.start_view import StartView
@@ -59,7 +61,10 @@ class GuiManager:
             ViewName.START: StartView(self.root, display, self.navigate, auth_service, player_component),
             ViewName.JOIN_RANKED: JoinRankedView(self.root, display, self.navigate, auth_service, player_component,
                                                  game_room_service),
-            ViewName.RANKED_GAME: RankedGameView(self.root, display, self.navigate, auth_service, game_room_service)
+            ViewName.JOIN_PRIVATE: JoinPrivateView(self.root, display, self.navigate, auth_service, player_component,
+                                                   game_room_service),
+            ViewName.RANKED_GAME: RankedGameView(self.root, display, self.navigate, auth_service, game_room_service),
+            ViewName.PRIVATE_GAME: PrivateGameView(self.root, display, self.navigate, auth_service, game_room_service)
         }
 
         self.bg = tk.Label(self.root, image=self.bg_img)
@@ -97,6 +102,45 @@ class GuiManager:
             self.views[ViewName.JOIN_RANKED].on_joined_ranked_room(message)
         elif code == MessageCode.CANCEL_JOINING_RANKED.value:
             self.views[ViewName.JOIN_RANKED].on_cancel_joining_ranked()
-
-
-
+        elif code == MessageCode.CREATE_PRIVATE_ROOM.value:
+            self.views[ViewName.JOIN_PRIVATE].on_create_private_room(message)
+        elif code == MessageCode.JOIN_PRIVATE_ROOM.value:
+            self.views[ViewName.JOIN_PRIVATE].on_join_by_access_key(message)
+        elif code == MessageCode.GUEST_JOINED_PRIVATE_ROOM.value:
+            self.views[ViewName.PRIVATE_GAME].on_guest_joined_private_room(message)
+        elif code == MessageCode.LEAVE_PRIVATE_ROOM.value:
+            self.views[ViewName.PRIVATE_GAME].on_leave_private_room(message)
+        elif code == MessageCode.KICK_FROM_PRIVATE_ROOM.value:
+            self.views[ViewName.PRIVATE_GAME].on_kick_from_private_room()
+        elif code == MessageCode.START_PRIVATE_GAME.value:
+            self.views[ViewName.PRIVATE_GAME].on_start_private_game(message)
+        elif code == MessageCode.GAME_SURRENDER.value:
+            if self.current_view is self.views[ViewName.PRIVATE_GAME]:
+                self.views[ViewName.PRIVATE_GAME].on_game_surrender(message)
+            else:
+                self.views[ViewName.RANKED_GAME].on_game_surrender(message)
+        elif code == MessageCode.GAME_OFFER_DRAW.value:
+            if self.current_view is self.views[ViewName.PRIVATE_GAME]:
+                self.views[ViewName.PRIVATE_GAME].on_game_offer_draw(message)
+            else:
+                self.views[ViewName.RANKED_GAME].on_game_offer_draw(message)
+        elif code == MessageCode.GAME_RESPOND_TO_DRAW_OFFER.value:
+            if self.current_view is self.views[ViewName.PRIVATE_GAME]:
+                self.views[ViewName.PRIVATE_GAME].on_game_respond_to_draw_offer(message)
+            else:
+                self.views[ViewName.RANKED_GAME].on_game_respond_to_draw_offer(message)
+        elif code == MessageCode.GAME_CLAIM_DRAW.value:
+            if self.current_view is self.views[ViewName.PRIVATE_GAME]:
+                self.views[ViewName.PRIVATE_GAME].on_game_claim_draw()
+            else:
+                self.views[ViewName.RANKED_GAME].on_game_claim_draw()
+        elif code == MessageCode.GAME_MOVE.value:
+            if self.current_view is self.views[ViewName.PRIVATE_GAME]:
+                self.views[ViewName.PRIVATE_GAME].on_game_move(message)
+            else:
+                self.views[ViewName.RANKED_GAME].on_game_move(message)
+        elif code == MessageCode.GAME_TIME_END.value:
+            if self.current_view is self.views[ViewName.PRIVATE_GAME]:
+                self.views[ViewName.PRIVATE_GAME].on_game_time_end()
+            else:
+                self.views[ViewName.RANKED_GAME].on_game_time_end()

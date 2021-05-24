@@ -1,5 +1,5 @@
 import platform
-from tkinter import Button, Label, Entry
+from tkinter import Button, Label, Entry, Message
 
 from client.connection.auth_service import PlayerValidationStatus
 
@@ -40,6 +40,22 @@ class FormEntry(Entry):
             args[key] = value
 
         super().__init__(master, args)
+
+
+class ErrorMessage(Message):
+    def __init__(self, master, **kw):
+        args = {
+            "font": ("Times New Roman", 12, "bold"),
+            "fg": "#ff0000",
+            "bg": "#ffffff",
+            "width": master.winfo_width() - 150,
+            "anchor": "w"
+        }
+        
+        for key, value in kw.items():
+            args[key] = value
+
+        super(ErrorMessage, self).__init__(master, args)
 
 
 class PrimaryButton(Button):
