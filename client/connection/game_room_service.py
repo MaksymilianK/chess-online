@@ -290,10 +290,10 @@ class GameRoomService:
         }
 
         if move.type == MoveType.CASTLING:
-            move_dict["rookFrom"] = move.rook_from
-            move_dict["rookTo"] = move.rook_to
+            move_dict["rookFrom"] = move.rook_from.coords
+            move_dict["rookTo"] = move.rook_to.coords
         elif move.type == MoveType.EN_PASSANT:
-            move_dict["capturedPosition"] = move.captured_position
+            move_dict["capturedPosition"] = move.captured_position.coords
         elif move.type == MoveType.PROMOTION or move.type == MoveType.PROMOTION_WITH_CAPTURING:
             move_dict["pieceType"] = move.piece_type.value
 
