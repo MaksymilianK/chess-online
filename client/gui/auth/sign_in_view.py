@@ -1,5 +1,4 @@
-from tkinter import *
-import platform
+from tkinter import Tk, Label, StringVar, END
 from typing import Callable
 
 from client.gui.error_message import VALIDATION_MESSAGES, AUTH_MESSAGES
@@ -11,9 +10,6 @@ from client.gui.shared import DisplayBoundary, PrimaryButton, TextButton, FormLa
     ErrorMessage
 from shared.message.auth_status import AuthStatus, STATUS_BY_CODE
 
-if platform.system() == "Darwin":
-    from tkmacosx import Button
-
 
 class SignInView(View):
     def __init__(self, root: Tk, display: DisplayBoundary, navigate: Callable[[ViewName], None],
@@ -24,14 +20,8 @@ class SignInView(View):
         self.frame = menu_frame(root, display)
         self.frame.columnconfigure(0, weight=1)
         self.frame.columnconfigure(1, weight=1)
-        self.frame.rowconfigure(0, weight=1)
-        self.frame.rowconfigure(1, weight=1)
-        self.frame.rowconfigure(2, weight=1)
-        self.frame.rowconfigure(3, weight=1)
-        self.frame.rowconfigure(4, weight=1)
-        self.frame.rowconfigure(5, weight=1)
-        self.frame.rowconfigure(6, weight=1)
-        self.frame.rowconfigure(7, weight=1)
+        for row in range(8):
+            self.frame.rowconfigure(row, weight=1)
 
         self.title = menu_title(self.frame, "Sign in")
 
@@ -40,7 +30,7 @@ class SignInView(View):
 
         self.sign_up_lbl = Label(self.frame, text="Not a member yet?", font=("Times New Roman", 12, "bold"), fg="gray",
                                  bg="white")
-        self.sign_up_lbl.grid(row=1, column=0, sticky="W")
+        self.sign_up_lbl.grid(row=1, column=0, sticky="E")
 
         self.sign_up_btn = TextButton(self.frame, text="Sign up", command=lambda: self.navigate(ViewName.SIGN_UP))
         self.sign_up_btn.grid(row=1, column=1, sticky="W")

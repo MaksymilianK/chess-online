@@ -1,8 +1,6 @@
 import platform
 from tkinter import Button, Label, Entry, Message
 
-from client.connection.auth_service import PlayerValidationStatus
-
 if platform.system() == "Darwin":
     from tkmacosx import Button as Button
 

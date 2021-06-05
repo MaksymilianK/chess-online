@@ -20,14 +20,12 @@ class JoinPrivateView(View):
         self.game_room_service = game_room_service
 
         self.frame = menu_frame(root, display)
+
         self.frame.columnconfigure(0, weight=1)
         self.frame.columnconfigure(1, weight=1)
-        self.frame.rowconfigure(0, weight=1)
-        self.frame.rowconfigure(1, weight=1)
-        self.frame.rowconfigure(2, weight=1)
-        self.frame.rowconfigure(3, weight=1)
-        self.frame.rowconfigure(4, weight=1)
-        self.frame.rowconfigure(5, weight=1)
+
+        for row in range(6):
+            self.frame.rowconfigure(row, weight=1)
 
         self.title = menu_title(self.frame, "Private room")
 

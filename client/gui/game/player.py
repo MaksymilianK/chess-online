@@ -1,4 +1,6 @@
+import os
 import math
+
 from tkinter import Frame, Label
 
 from PIL import Image, ImageTk
@@ -12,8 +14,9 @@ class PlayerTeam:
         self.frame.rowconfigure(0, weight=1)
         self.frame.rowconfigure(1, weight=1)
 
-        white_img = Image.open("client/img/white/pawn.png")
-        black_img = Image.open("client/img/black/pawn.png")
+        cwd = os.getcwd()
+        white_img = Image.open(os.path.join(cwd, "client/img/white/pawn.png"))
+        black_img = Image.open(os.path.join(cwd, "client/img/black/pawn.png"))
         white_img = white_img.resize((24, 24), Image.ANTIALIAS)
         black_img = black_img.resize((24, 24), Image.ANTIALIAS)
         self.white_img = ImageTk.PhotoImage(image=white_img)

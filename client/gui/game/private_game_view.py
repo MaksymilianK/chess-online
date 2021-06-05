@@ -1,5 +1,6 @@
-from tkinter import Tk, Label, Frame, Message
 from typing import Callable, Optional
+
+from tkinter import Tk, Label, NORMAL, DISABLED
 
 from client.connection.auth_service import AuthService
 from client.connection.game_room_service import GameRoomService, PrivateGameRoom
@@ -21,21 +22,10 @@ class PrivateGameView(View):
         self.game_room_service = game_room_service
 
         self.game_menu = game_menu(root, display)
-        self.game_menu.columnconfigure(0, weight=1)
-        self.game_menu.columnconfigure(1, weight=1)
-        self.game_menu.columnconfigure(2, weight=1)
-        self.game_menu.columnconfigure(3, weight=1)
-        self.game_menu.columnconfigure(4, weight=1)
-        self.game_menu.columnconfigure(5, weight=1)
-        self.game_menu.rowconfigure(0, weight=1)
-        self.game_menu.rowconfigure(1, weight=1)
-        self.game_menu.rowconfigure(2, weight=1)
-        self.game_menu.rowconfigure(3, weight=1)
-        self.game_menu.rowconfigure(4, weight=1)
-        self.game_menu.rowconfigure(5, weight=1)
-        self.game_menu.rowconfigure(6, weight=1)
-        self.game_menu.rowconfigure(7, weight=1)
-        self.game_menu.rowconfigure(8, weight=1)
+        for col in range(6):
+            self.game_menu.columnconfigure(col, weight=1)
+        for row in range(9):
+            self.game_menu.rowconfigure(row, weight=1)
 
         self.room: Optional[PrivateGameRoom] = None
 
@@ -55,10 +45,10 @@ class PrivateGameView(View):
                                                command=lambda: self.start_game(GameType.CLASSIC))
         self.start_classic_btn.grid(column=0, row=3, columnspan=2, sticky="N")
         self.start_rapid_btn = PrimaryButton(self.game_menu, text="Rapid",
-                                               command=lambda: self.start_game(GameType.RAPID))
+                                             command=lambda: self.start_game(GameType.RAPID))
         self.start_rapid_btn.grid(column=2, row=3, columnspan=2, sticky="N")
         self.start_blitz_btn = PrimaryButton(self.game_menu, text="Blitz",
-                                               command=lambda: self.start_game(GameType.BLITZ))
+                                             command=lambda: self.start_game(GameType.BLITZ))
         self.start_blitz_btn.grid(column=4, row=3, columnspan=2, sticky="N")
 
         self.kick_btn = PrimaryButton(self.game_menu, text="Kick guest", command=self.kick_guest)
@@ -86,15 +76,15 @@ class PrivateGameView(View):
         self.reset()
 
     def update_menu(self):
-        start_btn_state = "normal" if self.game_room_service.can_start_private_game() else "disabled"
+        start_btn_state = NORMAL if self.game_room_service.can_start_private_game() else DISABLED
         self.start_classic_btn["state"] = start_btn_state
         self.start_rapid_btn["state"] = start_btn_state
         self.start_blitz_btn["state"] = start_btn_state
-        self.kick_btn["state"] = "normal" if self.game_room_service.can_kick_guest() else "disabled"
-        self.surrender_btn["state"] = "normal" if self.game_room_service.can_surrender() else "disabled"
-        self.claim_draw_btn["state"] = "normal" if self.game_room_service.can_claim_draw() else "disabled"
-        self.offer_draw_btn["state"] = "normal" if self.game_room_service.can_offer_draw() else "disabled"
-        respond_to_draw_offer_state = "normal" if self.game_room_service.can_respond_to_draw_offer() else "disabled"
+        self.kick_btn["state"] = NORMAL if self.game_room_service.can_kick_guest() else DISABLED
+        self.surrender_btn["state"] = NORMAL if self.game_room_service.can_surrender() else DISABLED
+        self.claim_draw_btn["state"] = NORMAL if self.game_room_service.can_claim_draw() else DISABLED
+        self.offer_draw_btn["state"] = NORMAL if self.game_room_service.can_offer_draw() else DISABLED
+        respond_to_draw_offer_state = NORMAL if self.game_room_service.can_respond_to_draw_offer() else DISABLED
         self.accept_draw_btn["state"] = respond_to_draw_offer_state
         self.reject_draw_btn["state"] = respond_to_draw_offer_state
 
@@ -163,13 +153,13 @@ class PrivateGameView(View):
             self.guest.update_time(30 * 1000)
             self.guest.start_counting()
 
-    def on_game_surrender(self, message: dict):
+    def on_game_surrender(self):
         self.game_room_service.on_game_surrender()
         self.update_menu()
         self.host.stop_timer()
         self.guest.stop_timer()
 
-    def on_game_offer_draw(self, message: dict):
+    def on_game_offer_draw(self):
         self.game_room_service.on_game_offer_draw()
         self.update_menu()
 
@@ -210,15 +200,15 @@ class PrivateGameView(View):
         self.host.reset()
         self.guest.reset()
         self.access_key_lbl["text"] = ""
-        self.start_classic_btn["state"] = "disabled"
-        self.start_rapid_btn["state"] = "disabled"
-        self.start_blitz_btn["state"] = "disabled"
-        self.kick_btn["state"] = "disabled"
-        self.surrender_btn["state"] = "disabled"
-        self.claim_draw_btn["state"] = "disabled"
-        self.offer_draw_btn["state"] = "disabled"
-        self.accept_draw_btn["state"] = "disabled"
-        self.reject_draw_btn["state"] = "disabled"
+        self.start_classic_btn["state"] = DISABLED
+        self.start_rapid_btn["state"] = DISABLED
+        self.start_blitz_btn["state"] = DISABLED
+        self.kick_btn["state"] = DISABLED
+        self.surrender_btn["state"] = DISABLED
+        self.claim_draw_btn["state"] = DISABLED
+        self.offer_draw_btn["state"] = DISABLED
+        self.accept_draw_btn["state"] = DISABLED
+        self.reject_draw_btn["state"] = DISABLED
         self.chessboard_visualizer.reset()
 
     def show(self):

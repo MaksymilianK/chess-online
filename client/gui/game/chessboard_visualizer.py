@@ -1,9 +1,9 @@
 from typing import Optional
 
-from tkinter import *
+from tkinter import Tk, Frame, Canvas, NW, EventType
 from PIL import Image, ImageTk
+
 import os
-import platform
 
 from client import GameRoomService
 from client.gui.shared import DisplayBoundary
@@ -11,9 +11,6 @@ from shared.chess_engine.chess_engine import ChessEngine
 from shared.chess_engine.move import Promotion, MoveType, AbstractMove
 from shared.chess_engine.piece import Team, PieceType, Piece
 from shared.chess_engine.position import Vector2d
-
-if platform.system() == "Darwin":
-    from tkmacosx import Button
 
 
 class ChessboardVisualizer:
@@ -38,7 +35,7 @@ class ChessboardVisualizer:
 
         self.pieces: dict[Team, dict[PieceType, ImageTk.PhotoImage]] = {Team.WHITE: {}, Team.BLACK: {}}
 
-        self._fields: dict[Vector2d, int] = {Vector2d(i, j): None for i in range(8) for j in range(8)}
+        self._fields: dict[Vector2d, Optional[int]] = {Vector2d(i, j): None for i in range(8) for j in range(8)}
         self._currently_available_moves: [int] = []
         self._selected_piece: Optional[Vector2d] = None
         self._promotion_move: Optional[Promotion] = None
@@ -76,16 +73,14 @@ class ChessboardVisualizer:
         self.init_fields()
 
     def import_pieces(self):
-        """
-        Imports images of pieces for both teams
-        :return:
-        """
-
+        cwd = os.getcwd()
+        white_pieces_dir = os.path.join(cwd, "client/img/white/")
+        black_pieces_dir = os.path.join(cwd, "client/img/black/")
         file_to_piece_type = {"king.png": PieceType.KING, "queen.png": PieceType.QUEEN, "knight.png": PieceType.KNIGHT,
                               "bishop.png": PieceType.BISHOP, "rook.png": PieceType.ROOK, "pawn.png": PieceType.PAWN}
-        path_to_team = {"client/img/white/": Team.WHITE, "client/img/black/": Team.BLACK}
+        path_to_team = {white_pieces_dir: Team.WHITE, black_pieces_dir: Team.BLACK}
 
-        for path in ["client/img/white/", "client/img/black/"]:
+        for path in [white_pieces_dir, black_pieces_dir]:
             files = os.listdir(path)
             for file in files:
                 img = Image.open(path + file)
@@ -94,11 +89,6 @@ class ChessboardVisualizer:
                 self.pieces[path_to_team[path]][file_to_piece_type[file]] = img
 
     def init_fields(self):
-        """
-        Fills frame with rectangles representing chessboard fields
-        :return:
-        """
-
         for row in range(8):
             for column in range(8):
                 if row % 2 == column % 2:
@@ -108,11 +98,6 @@ class ChessboardVisualizer:
                 self.set_field(row, column, square_color)
 
     def init_pieces(self):
-        """
-        Places pieces on the chessboard in their initial positions for both teams
-        :return:
-        """
-
         for team in [Team.WHITE, Team.BLACK]:
             for piece in self.engine.board.pieces[team].all:
                 self.set_piece(piece)

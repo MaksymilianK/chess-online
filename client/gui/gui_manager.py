@@ -1,8 +1,8 @@
 import json
-import platform
-import tkinter as tk
+import os
 from queue import Queue
 
+import tkinter as tk
 from PIL import ImageTk, Image
 
 from client.connection.game_room_service import GameRoomService
@@ -49,7 +49,7 @@ class GuiManager:
 
         display = DisplayBoundary(x, y, width, height)
 
-        img = Image.open("client/img/bg3.jpg")
+        img = Image.open(os.path.join(os.getcwd(), "client/img/bg.jpg"))
         img = img.resize((screen_width, screen_height), Image.ANTIALIAS)
         self.bg_img = ImageTk.PhotoImage(img)
 
