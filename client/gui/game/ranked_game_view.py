@@ -28,11 +28,11 @@ class RankedGameView(View):
 
         self.room: Optional[RankedGameRoom] = None
 
-        self.player2 = PlayerTeam(self.game_menu)
-        self.player2.frame.grid(column=0, row=0, columnspan=3, sticky="N")
-
         self.player1 = PlayerTeam(self.game_menu)
-        self.player1.frame.grid(column=3, row=0, columnspan=3, sticky="N")
+        self.player1.frame.grid(column=0, row=0, columnspan=3, sticky="N")
+
+        self.player2 = PlayerTeam(self.game_menu)
+        self.player2.frame.grid(column=3, row=0, columnspan=3, sticky="N")
 
         self.surrender_btn = PrimaryButton(self.game_menu, text="Surrender", command=self.surrender)
         self.surrender_btn.grid(column=0, row=1, columnspan=3)
@@ -72,11 +72,11 @@ class RankedGameView(View):
     def respond_to_draw_offer(self, accepted: bool):
         self.game_room_service.game_respond_to_draw_offer(accepted)
 
-    def on_game_surrender(self):
+    def on_game_surrender(self, message: dict):
         self.game_room_service.on_game_surrender()
         self.navigate(ViewName.JOIN_RANKED)
 
-    def on_game_offer_draw(self):
+    def on_game_offer_draw(self, message: dict):
         self.game_room_service.on_game_offer_draw()
         self.update_menu()
 
@@ -94,12 +94,15 @@ class RankedGameView(View):
         move = self.game_room_service.on_game_move(message)
         self.update_menu()
         self.chessboard_visualizer.process_move(move)
-        if self.room.engine.currently_moving_team == self.room.teams[self.room.players[0]]:
-            self.player2.update_time(self.room.times[self.room.teams[self.room.players[1]]])
+        if self.room.engine.currently_moving_team == self.room.teams[self.auth_service.current]:
+            if self.auth_service.current == self.room.players[0]:
+                self.player2.update_time(self.room.times[self.room.teams[self.room.players[1]]])
+            else:
+                self.player2.update_time(self.room.times[self.room.teams[self.room.players[0]]])
             self.player2.update_timer_lbl()
             self.player1.start_counting()
         else:
-            self.player1.update_time(self.room.times[self.room.teams[self.room.players[0]]])
+            self.player1.update_time(self.room.times[self.room.teams[self.auth_service.current]])
             self.player1.update_timer_lbl()
             self.player2.start_counting()
 
@@ -121,22 +124,30 @@ class RankedGameView(View):
 
     def show(self):
         self.room = self.game_room_service.room
-        self.player1.nick_lbl["text"] = self.room.players[0].nick
-        self.player2.nick_lbl["text"] = self.room.players[1].nick
+
+        self.player1.nick_lbl["text"] = self.auth_service.current.nick
+        if self.auth_service.current == self.room.players[0]:
+            self.player2.nick_lbl["text"] = self.room.players[1].nick
+        else:
+            self.player2.nick_lbl["text"] = self.room.players[0].nick
 
         self.update_menu()
         self.chessboard_visualizer.start()
 
-        if self.room.teams[self.room.players[0]] == Team.WHITE:
+        if self.room.teams[self.auth_service.current] == Team.WHITE:
             self.player1.team_lbl["image"] = self.player1.white_img
             self.player2.team_lbl["image"] = self.player2.black_img
         else:
             self.player1.team_lbl["image"] = self.player1.black_img
             self.player2.team_lbl["image"] = self.player2.white_img
 
-        self.player1.update_time(self.room.times[self.room.teams[self.room.players[0]]])
-        self.player2.update_time(self.room.times[self.room.teams[self.room.players[1]]])
-        if self.room.engine.currently_moving_team == self.room.teams[self.room.players[0]]:
+        self.player1.update_time(self.room.times[self.room.teams[self.auth_service.current]])
+        if self.auth_service.current == self.room.players[0]:
+            self.player2.update_time(self.room.times[self.room.teams[self.room.players[1]]])
+        else:
+            self.player2.update_time(self.room.times[self.room.teams[self.room.players[0]]])
+
+        if self.room.engine.currently_moving_team == self.room.teams[self.auth_service.current]:
             self.player1.update_time(30 * 1000)
             self.player1.start_counting()
         else:

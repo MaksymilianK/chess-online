@@ -30,10 +30,7 @@ class PrivateGameView(View):
         self.room: Optional[PrivateGameRoom] = None
 
         self.host = PlayerTeam(self.game_menu)
-        self.host.frame.grid(column=0, row=0, columnspan=3, sticky="N")
-
         self.guest = PlayerTeam(self.game_menu)
-        self.guest.frame.grid(column=3, row=0, columnspan=3, sticky="N")
 
         self.access_key_lbl = Label(self.game_menu, text="", font=("Times New Roman", 16, "bold"))
         self.access_key_lbl.grid(column=0, row=1, columnspan=6)
@@ -137,6 +134,13 @@ class PrivateGameView(View):
         self.update_menu()
         self.chessboard_visualizer.start()
 
+        if self.auth_service.current == self.room.host:
+            self.host.frame.grid(column=0, row=0, columnspan=3, sticky="N")
+            self.guest.frame.grid(column=3, row=0, columnspan=3, sticky="N")
+        else:
+            self.guest.frame.grid(column=0, row=0, columnspan=3, sticky="N")
+            self.host.frame.grid(column=3, row=0, columnspan=3, sticky="N")
+
         if self.room.teams[self.room.host] == Team.WHITE:
             self.host.team_lbl["image"] = self.host.white_img
             self.guest.team_lbl["image"] = self.host.black_img
@@ -153,13 +157,13 @@ class PrivateGameView(View):
             self.guest.update_time(30 * 1000)
             self.guest.start_counting()
 
-    def on_game_surrender(self):
+    def on_game_surrender(self, message: dict):
         self.game_room_service.on_game_surrender()
         self.update_menu()
         self.host.stop_timer()
         self.guest.stop_timer()
 
-    def on_game_offer_draw(self):
+    def on_game_offer_draw(self, message: dict):
         self.game_room_service.on_game_offer_draw()
         self.update_menu()
 
