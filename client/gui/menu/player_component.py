@@ -1,7 +1,7 @@
 from typing import Optional
 import os
 
-from tkinter import Tk, Label, LEFT, RIGHT, EventType
+from tkinter import Tk, Label, LEFT, EventType
 from PIL import Image, ImageTk
 
 from shared.game.game_type import GameType
