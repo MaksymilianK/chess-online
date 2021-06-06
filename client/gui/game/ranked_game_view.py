@@ -1,6 +1,6 @@
 from typing import Callable, Optional
 
-from tkinter import Tk, NORMAL, DISABLED
+from tkinter import Tk, messagebox, NORMAL, DISABLED
 
 from client.connection.auth_service import AuthService
 from client.connection.game_room_service import GameRoomService, RankedGameRoom
@@ -75,6 +75,8 @@ class RankedGameView(View):
     def on_game_surrender(self, message: dict):
         self.game_room_service.on_game_surrender()
         self.navigate(ViewName.JOIN_RANKED)
+        if message["player"]["nick"] != self.auth_service.current.nick:
+            messagebox.showinfo("Info", "Your opponent surrendered! You win!")
 
     def on_game_offer_draw(self, message: dict):
         self.game_room_service.on_game_offer_draw()
@@ -85,10 +87,12 @@ class RankedGameView(View):
         self.update_menu()
         if not self.room.running:
             self.navigate(ViewName.JOIN_RANKED)
+            messagebox.showinfo("Info", "It's a draw! Nobody wins, nobody loses!")
 
     def on_game_claim_draw(self):
         self.game_room_service.on_game_claim_draw()
         self.navigate(ViewName.JOIN_RANKED)
+        messagebox.showinfo("Info", "It's a draw! Nobody wins, nobody loses!")
 
     def on_game_move(self, message: dict):
         move = self.game_room_service.on_game_move(message)
@@ -110,6 +114,7 @@ class RankedGameView(View):
         self.game_room_service.on_game_time_end()
         self.update_menu()
         self.navigate(ViewName.JOIN_RANKED)
+        messagebox.showinfo("Info", "The time is up!")
 
     def reset(self):
         self.room = None

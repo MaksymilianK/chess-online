@@ -1,6 +1,6 @@
 from typing import Callable, Optional
 
-from tkinter import Tk, Label, NORMAL, DISABLED
+from tkinter import Tk, Label, messagebox, NORMAL, DISABLED
 
 from client.connection.auth_service import AuthService
 from client.connection.game_room_service import GameRoomService, PrivateGameRoom
@@ -119,6 +119,8 @@ class PrivateGameView(View):
             self.guest.reset()
         else:
             self.navigate(ViewName.JOIN_PRIVATE)
+            if message["player"]["nick"] != self.auth_service.current.nick:
+                messagebox.showinfo("Info", "The host left the room!")
 
     def on_kick_from_private_room(self):
         self.game_room_service.on_kick_from_private_room()
@@ -128,6 +130,7 @@ class PrivateGameView(View):
             self.guest.reset()
         else:
             self.navigate(ViewName.JOIN_PRIVATE)
+            messagebox.showinfo("Info", "You was kicked out from the private room!")
 
     def on_start_private_game(self, message: dict):
         self.game_room_service.on_start_private_game(message)
@@ -162,6 +165,8 @@ class PrivateGameView(View):
         self.update_menu()
         self.host.stop_timer()
         self.guest.stop_timer()
+        if message["player"]["nick"] != self.auth_service.current.nick:
+            messagebox.showinfo("Info", "Your opponent surrendered! You win!")
 
     def on_game_offer_draw(self, message: dict):
         self.game_room_service.on_game_offer_draw()
@@ -173,12 +178,14 @@ class PrivateGameView(View):
         if not self.room.running:
             self.host.stop_timer()
             self.guest.stop_timer()
+            messagebox.showinfo("Info", "It's a draw! Nobody wins, nobody loses!")
 
     def on_game_claim_draw(self):
         self.game_room_service.on_game_claim_draw()
         self.update_menu()
         self.host.stop_timer()
         self.guest.stop_timer()
+        messagebox.showinfo("Info", "It's a draw! Nobody wins, nobody loses!")
 
     def on_game_move(self, message: dict):
         move = self.game_room_service.on_game_move(message)
@@ -198,6 +205,7 @@ class PrivateGameView(View):
         self.update_menu()
         self.host.stop_timer()
         self.guest.stop_timer()
+        messagebox.showinfo("Info", "The time is up!")
 
     def reset(self):
         self.room = None
