@@ -1,9 +1,9 @@
 from typing import Optional
 
+import os
+
 from tkinter import Tk, Frame, Canvas, NW, EventType
 from PIL import Image, ImageTk
-
-import os
 
 from client import GameRoomService
 from client.gui.shared import DisplayBoundary
@@ -40,17 +40,15 @@ class ChessboardVisualizer:
         self._selected_piece: Optional[Vector2d] = None
         self._promotion_move: Optional[Promotion] = None
 
-        self.menu = None
-
-        self.promotion_menu_pieces = {0: PieceType.KNIGHT, 1: PieceType.BISHOP, 2: PieceType.ROOK, 3: PieceType.QUEEN}
+        self.promotion_menu_pieces = [PieceType.KNIGHT, PieceType.BISHOP, PieceType.ROOK, PieceType.QUEEN]
 
         self.canvas = Canvas(self.table, width=self.board_size + 1, height=self.board_size + 1, borderwidth=0,
                              highlightthickness=0)
         self.canvas.place(x=self.board_margin, y=self.board_margin)
         self.init_board()
-
         self.canvas.bind("<Button-1>", self.handle_canvas_click_event)
-        self.promotion_menu = self.init_promotion_menu()
+
+        self.promotion_menu: Optional[Frame] = None
 
         self.engine: Optional[ChessEngine] = None
 
@@ -121,9 +119,7 @@ class ChessboardVisualizer:
             y = field_center + self.board_size - (position_to.y + 1) * self.field_size
             self.set_available_move(x, y, radius)
 
-    def init_promotion_menu(self):
-        team = Team.WHITE
-
+    def init_promotion_menu(self, team):
         promotion_menu = Frame(self.root, bg="#000000")
         promotion_menu.place(x=self.display.x + self.board_margin + 2 * self.field_size,
                              y=self.display.y + self.board_margin + 1.5 * self.field_size,
@@ -134,13 +130,14 @@ class ChessboardVisualizer:
                         borderwidth=0, highlightthickness=0)
         canvas.place(x=self.field_padding, y=self.field_padding)
 
-        for i, piece_type in self.promotion_menu_pieces.items():
+        for i, piece_type in enumerate(self.promotion_menu_pieces):
             canvas.create_image(self.piece_size * i, 0, image=self.pieces[team][piece_type], anchor=NW)
 
         canvas.bind("<Button-1>", self.handle_promotion_menu_click)
         return promotion_menu
 
-    def display_promotion_menu(self):
+    def display_promotion_menu(self, team):
+        self.promotion_menu = self.init_promotion_menu(team)
         self.promotion_menu.tkraise()
 
     def handle_promotion_menu_click(self, event: EventType):
@@ -207,7 +204,7 @@ class ChessboardVisualizer:
     def process_move(self, move: AbstractMove):
         if move.type == MoveType.PROMOTION or move.type == MoveType.PROMOTION_WITH_CAPTURING:
             self._promotion_move = move
-            self.display_promotion_menu()
+            self.display_promotion_menu(self.game_room_service.current_team)
             return
 
         self.clear_available_moves()
