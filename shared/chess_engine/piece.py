@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from enum import Enum, auto
+from enum import Enum
 
 from shared.chess_engine.position import Vector2d, UP, DOWN, UP_RIGHT, UP_LEFT, DOWN_LEFT, DOWN_RIGHT, LEFT, RIGHT
 

@@ -1,4 +1,4 @@
-from shared.position import Vector2d, centre, distance_x, distance_y
+from shared.chess_engine.position import Vector2d, centre, distance_x, distance_y
 
 
 class TestVector2d:

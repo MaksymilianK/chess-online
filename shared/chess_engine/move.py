@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import abstractmethod, ABC
-from enum import Enum, auto
+from enum import Enum
 
 from shared.chess_engine.position import Vector2d
 from shared.chess_engine.piece import PieceType
