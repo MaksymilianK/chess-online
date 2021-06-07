@@ -301,8 +301,11 @@ class ChessEngine:
             while within_board(new_pos):
                 if self.check_status.checked and not self._will_move_cover_king(new_pos) \
                         and not self._will_capture_checking_piece(new_pos):
-                    new_pos += move_vector
-                    continue
+                    if self.board.piece_at(new_pos):
+                        break
+                    else:
+                        new_pos += move_vector
+                        continue
 
                 if self.board.piece_at(new_pos):
                     if self.board.piece_at(new_pos).team != self.currently_moving_team:

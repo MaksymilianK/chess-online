@@ -1,5 +1,4 @@
 import json
-import logging
 import re
 from abc import ABC, abstractmethod
 from enum import auto, Enum
@@ -137,8 +136,6 @@ class GameRoomService:
 
     def on_kick_from_private_room(self):
         self.room.engine = None
-        logging.fatal(self.room.guest.nick)
-        logging.fatal(self._auth_service.current.nick)
         if self.room.guest == self._auth_service.current:
             self.room = None
         else:
@@ -289,8 +286,6 @@ class GameRoomService:
             "positionTo": move.position_to.coords
         }
 
-        logging.fatal(move.type)
-
         if move.type == MoveType.CASTLING:
             move_dict["rookFrom"] = move.rook_from.coords
             move_dict["rookTo"] = move.rook_to.coords
@@ -300,10 +295,6 @@ class GameRoomService:
             move_dict["pieceType"] = move.piece_type.value
 
         self._connection_manager.send(json.dumps({
-            "code": MessageCode.GAME_MOVE.value,
-            "move": move_dict
-        }))
-        logging.fatal(json.dumps({
             "code": MessageCode.GAME_MOVE.value,
             "move": move_dict
         }))

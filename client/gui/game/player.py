@@ -22,13 +22,13 @@ class PlayerTeam:
         self.white_img = ImageTk.PhotoImage(image=white_img)
         self.black_img = ImageTk.PhotoImage(image=black_img)
 
-        self.team_lbl = Label(self.frame)
+        self.team_lbl = Label(self.frame, font=("Times New Roman", 20), bg="white", fg="black")
         self.team_lbl.grid(column=0, row=0)
 
-        self.nick_lbl = Label(self.frame, text="")
+        self.nick_lbl = Label(self.frame, font=("Times New Roman", 20), text="", bg="white", fg="black")
         self.nick_lbl.grid(column=1, row=0)
 
-        self.timer_lbl = Label(self.frame, text="")
+        self.timer_lbl = Label(self.frame, font=("Times New Roman", 20), text="", bg="white", fg="black")
         self.timer_lbl.grid(column=0, row=1, columnspan=2)
 
         self.time: int = 0

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from typing import Optional
 from motor.core import AgnosticCollection
 from server.database import DBConnection
@@ -69,4 +70,6 @@ class PlayerRepository:
         await self._collection.insert_one(model.as_doc())
 
     async def update_elo(self, nick: str, new_elo: int, game_type: GameType):
+        logging.fatal("update1")
         await self._collection.update_one({"nick": nick}, {"$set": {f"elo.{game_type.value}": new_elo}})
+        logging.fatal("update2")

@@ -28,13 +28,6 @@ def _elo_bucket(player: Player, game_type: GameType) -> int:
     return bucket if bucket < NUM_OF_BUCKETS else NUM_OF_BUCKETS - 1
 
 
-async def _on_private_time_end(game_end_status: GameEndStatus):
-    message_str = json.dumps({
-        "code": MessageCode.GAME_TIME_END.value
-    })
-    await asyncio.gather(game_end_status.winner.send(message_str), game_end_status.loser.send(message_str))
-
-
 def _parse_move(position_from: Vector2d, position_to: Vector2d) -> Move:
     return Move(position_from, position_to)
 
@@ -244,7 +237,7 @@ class GameRoomService:
         message_str = json.dumps({
             "code": MessageCode.KICK_FROM_PRIVATE_ROOM.value
         })
-        await asyncio.gather(*[room.host.send(message_str), guest.send(message_str)])
+        await asyncio.gather(room.host.send(message_str), guest.send(message_str))
 
     async def start_private_game(self, message: dict, sender: Player):
         try:
@@ -264,7 +257,7 @@ class GameRoomService:
         except KeyError:
             raise InvalidRequestException("unknown game type")
 
-        room.runner.start(room.host, room.guest, game_type, _on_private_time_end)
+        room.runner.start(room.host, room.guest, game_type, self._on_private_time_end)
 
         await room.send(json.dumps({
             "code": MessageCode.START_PRIVATE_GAME.value,
@@ -348,9 +341,7 @@ class GameRoomService:
         position_from, position_to = parse_vector(move_message["positionFrom"]), parse_vector(move_message["positionTo"])
 
         if move_type == MoveType.MOVE:
-            logging.fatal(move_type)
             move = _parse_move(position_from, position_to)
-            logging.fatal(move_type)
         elif move_type == MoveType.CAPTURING:
             move = _parse_capturing(position_from, position_to)
         elif move_type == MoveType.CASTLING:
@@ -360,7 +351,7 @@ class GameRoomService:
         elif move_type == MoveType.PROMOTION:
             move = _parse_promotion(move_message, position_from, position_to)
         else:
-            move = _parse_promotion(message, position_from, position_to, True)
+            move = _parse_promotion(move_message, position_from, position_to, True)
 
         move_status = room.runner.on_move(move, sender)
         if not move_status.successful:
@@ -400,10 +391,6 @@ class GameRoomService:
             return self.private_rooms_by_player[player]
 
     async def _remove_ranked(self, game_end_status: GameEndStatus):
-        self.ranked_rooms[game_end_status.winner].runner.clean()
-        self.ranked_rooms.pop(game_end_status.winner)
-        self.ranked_rooms.pop(game_end_status.loser)
-
         player1 = game_end_status.winner
         player2 = game_end_status.loser
         game_type = game_end_status.game_type
@@ -418,14 +405,17 @@ class GameRoomService:
             player2.elo[game_type],
             player1_score
         )
-        logging.fatal(player_elo_change)
         player1.elo[game_type] += player_elo_change
         player2.elo[game_type] -= player_elo_change
 
-        await asyncio.gather(*[
+        await asyncio.gather(
             self.player_repo.update_elo(player1.nick, player1.elo[game_type], game_type),
             self.player_repo.update_elo(player2.nick, player2.elo[game_type], game_type)
-        ])
+        )
+
+        self.ranked_rooms[game_end_status.winner].runner.clean()
+        self.ranked_rooms.pop(game_end_status.winner)
+        self.ranked_rooms.pop(game_end_status.loser)
 
     def _remove_private(self, room: PrivateGameRoom):
         room.runner.clean()
@@ -447,12 +437,24 @@ class GameRoomService:
             "teams": {t.value: p.as_response() for p, t in room.runner.teams.items()}
         }))
 
-    async def _on_ranked_time_end(self, game_end_status: GameEndStatus):
-        await self._remove_ranked(game_end_status)
+    async def _on_private_time_end(self, game_end_status: GameEndStatus):
         message_str = json.dumps({
             "code": MessageCode.GAME_TIME_END.value
         })
-        await asyncio.gather(*[game_end_status.winner.send(message_str), game_end_status.loser.send(message_str)])
+        await asyncio.gather(game_end_status.winner.send(message_str), game_end_status.loser.send(message_str))
+        self.private_rooms_by_player[game_end_status.winner].runner.clean()
+
+    async def _on_ranked_time_end(self, game_end_status: GameEndStatus):
+        logging.fatal("end")
+        message_str = json.dumps({
+            "code": MessageCode.GAME_TIME_END.value
+        })
+        logging.fatal("end")
+        await asyncio.gather(
+            game_end_status.winner.send(message_str),
+            game_end_status.loser.send(message_str),
+            self._remove_ranked(game_end_status))
+        logging.fatal("end")
 
     async def match_players(self):
         rooms: list[Coroutine] = []

@@ -29,13 +29,11 @@ class ConnectionConfig:
     def _load(self):
         with open(CONNECTION_CONFIG_FILE, "r") as file:
             self._set_cfg(yaml.load(file))
-        logging.info("Loading database configuration file")
 
     def _save_def(self):
         with open(CONNECTION_CONFIG_FILE, "w") as file:
             yaml.dump(self.default, file)
             self._set_cfg(self.default)
-        logging.info("Writing database default configuration file")
 
     def _set_cfg(self, cfg: dict[str, any]):
         self.host = cfg["host"]

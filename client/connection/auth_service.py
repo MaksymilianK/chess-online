@@ -1,5 +1,4 @@
 import json
-import logging
 from enum import Enum
 from typing import Optional
 
@@ -58,5 +57,4 @@ class AuthService:
 
     @current.setter
     def current(self, player_dict: dict):
-        logging.fatal(player_dict)
         self._current = player_from_dict(player_dict)

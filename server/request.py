@@ -1,5 +1,3 @@
-import logging
-
 from shared.chess_engine.chessboard import within_board
 from shared.chess_engine.position import Vector2d
 
@@ -16,13 +14,10 @@ def assert_in(message: dict, *fields: tuple[str, type]):
 
 
 def parse_vector(data: tuple) -> Vector2d:
-    logging.fatal("7")
     if len(data) != 2 or type(data[0]) != int or type(data[1]) != int:
         raise InvalidRequestException("invalid position format")
-    logging.fatal("8")
     vector = Vector2d(data[0], data[1])
     if not within_board(vector):
         raise InvalidRequestException("position is not within board")
-    logging.fatal("9")
     return vector
 

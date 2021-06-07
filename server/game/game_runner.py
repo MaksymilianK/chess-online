@@ -1,5 +1,3 @@
-import asyncio
-import logging
 import random
 from typing import Optional, Coroutine, Callable
 
@@ -113,14 +111,11 @@ class GameRunner:
         if not self.running or self.teams[player] != self._engine.currently_moving_team \
                 or not self._engine.validate_move(move):
             return MoveStatus(False, -1)
-        logging.fatal("a")
 
         self._engine.process_move(move)
-        logging.fatal("b")
 
         game_type = self.game_type
         opposite_player = self._opposite_player(player)
-        logging.fatal("c")
 
         time_left = self.timer.next()
 
@@ -130,11 +125,9 @@ class GameRunner:
         elif self._engine.is_tie():
             self.clean()
             return MoveStatus(True, time_left, GameEndStatus(True, player, opposite_player, game_type))
-        logging.fatal("d")
 
         if self._draw_offer and self._draw_offer != player:
             self._draw_offer = None
-        logging.fatal("e")
 
         return MoveStatus(True, time_left)
 

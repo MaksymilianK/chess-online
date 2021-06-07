@@ -57,5 +57,6 @@ class ConnectionPool:
             else:
                 await self._message_broker.on_authenticated_message(message, self._authenticated[websocket])
         except InvalidRequestException as e:
+            logging.fatal(e)
             await websocket.close(reason="invalid request")
 
