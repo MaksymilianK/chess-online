@@ -1,21 +1,41 @@
 from abc import ABC, abstractmethod
-from enum import Enum, auto
+from enum import Enum
 
-from shared.position import Vector2d, UP, DOWN, UP_RIGHT, UP_LEFT, DOWN_LEFT, DOWN_RIGHT, LEFT, RIGHT
+from shared.chess_engine.position import Vector2d, UP, DOWN, UP_RIGHT, UP_LEFT, DOWN_LEFT, DOWN_RIGHT, LEFT, RIGHT
 
 
 class Team(Enum):
-    WHITE = auto()
-    BLACK = auto()
+    WHITE = "WHITE"
+    BLACK = "BLACK"
+
+
+TEAMS_BY_NAME = {
+    "WHITE": Team.WHITE,
+    "BLACK": Team.BLACK
+}
 
 
 class PieceType(Enum):
-    PAWN = auto()
-    KNIGHT = auto()
-    BISHOP = auto()
-    ROOK = auto()
-    QUEEN = auto()
-    KING = auto()
+    PAWN = 1
+    KNIGHT = 2
+    BISHOP = 3
+    ROOK = 4
+    QUEEN = 5
+    KING = 6
+
+
+PIECE_TYPES_FROM_CODE = {
+    1: PieceType.PAWN,
+    2: PieceType.KNIGHT,
+    3: PieceType.BISHOP,
+    4: PieceType.ROOK,
+    5: PieceType.QUEEN,
+    6: PieceType.KING
+}
+
+
+def opposite_team(team: Team) -> Team:
+    return Team.WHITE if team == Team.BLACK else Team.BLACK
 
 
 class Piece(ABC):

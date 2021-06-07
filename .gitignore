@@ -1,4 +1,5 @@
 db-config.yaml
+client-config.yaml
 env
 .idea
 .pytest-cache

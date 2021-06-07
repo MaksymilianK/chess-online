@@ -1,19 +1,29 @@
 from __future__ import annotations
 
 from abc import abstractmethod, ABC
-from enum import Enum, auto
+from enum import Enum
 
-from shared.position import Vector2d
-from shared.piece import PieceType
+from shared.chess_engine.position import Vector2d
+from shared.chess_engine.piece import PieceType
 
 
 class MoveType(Enum):
-    MOVE = auto()
-    CAPTURING = auto()
-    CASTLING = auto()
-    EN_PASSANT = auto()
-    PROMOTION = auto()
-    PROMOTION_WITH_CAPTURING = auto()
+    MOVE = 1
+    CAPTURING = 2
+    CASTLING = 3
+    EN_PASSANT = 4
+    PROMOTION = 5
+    PROMOTION_WITH_CAPTURING = 6
+
+
+MOVE_TYPES_BY_CODE = {
+    1: MoveType.MOVE,
+    2: MoveType.CAPTURING,
+    3: MoveType.CASTLING,
+    4: MoveType.EN_PASSANT,
+    5: MoveType.PROMOTION,
+    6: MoveType.PROMOTION_WITH_CAPTURING
+}
 
 
 class AbstractMove(ABC):
@@ -93,12 +103,6 @@ class Promotion(AbstractMove):
     @property
     def type(self) -> MoveType:
         return MoveType.PROMOTION
-
-    def __eq__(self, other: AbstractMove):
-        return super().__eq__(other) and self.piece_type == other.piece_type
-
-    def __hash__(self):
-        return hash((self.type, self.position_from, self.position_to, self.piece_type))
 
 
 class PromotionWithCapturing(Promotion):
