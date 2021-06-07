@@ -16,6 +16,6 @@ def menu_frame(master, display_size: DisplayBoundary) -> Frame:
 
 
 def menu_title(menu, text: str) -> Label:
-    title = Label(menu, text=text, font=("Impact", 25, "bold"), fg="#d77337", bg="white")
+    title = Label(menu, text=text, font=("Times New Roman", 25, "bold"), fg="#d77337", bg="white")
     title.grid(row=0, column=0, sticky="WN")
     return title

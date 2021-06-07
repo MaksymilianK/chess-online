@@ -104,12 +104,6 @@ class Promotion(AbstractMove):
     def type(self) -> MoveType:
         return MoveType.PROMOTION
 
-    def __eq__(self, other: AbstractMove):
-        return super().__eq__(other) and self.piece_type == other.piece_type
-
-    def __hash__(self):
-        return hash((self.type, self.position_from, self.position_to, self.piece_type))
-
 
 class PromotionWithCapturing(Promotion):
     def __init__(self, position_from: Vector2d, position_to: Vector2d, piece_type: PieceType = None):

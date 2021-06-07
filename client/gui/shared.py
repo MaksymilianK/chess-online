@@ -31,6 +31,7 @@ class FormEntry(Entry):
     def __init__(self, master, **kw):
         args = {
             "font": ("Times New Roman", 12),
+            "fg": "#000",
             "bg": "#eeeeee"
         }
 

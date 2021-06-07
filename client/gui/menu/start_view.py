@@ -32,7 +32,7 @@ class StartView(View):
 
         self.welcome_lbl = Label(self.frame, text=welcome_message, font=("Times New Roman", 14, "bold"),
                                  fg="gray", bg="white")
-        self.welcome_lbl.grid(row=1, column=0, columnspan=2, sticky="W")
+        self.welcome_lbl.grid(row=1, column=0, columnspan=2, sticky="WE")
 
         self.join_ranked_btn = PrimaryButton(self.frame, text="Join ranked",
                                              command=lambda: self.navigate(ViewName.JOIN_RANKED))

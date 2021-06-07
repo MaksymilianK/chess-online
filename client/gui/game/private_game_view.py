@@ -32,10 +32,10 @@ class PrivateGameView(View):
         self.host = PlayerTeam(self.game_menu)
         self.guest = PlayerTeam(self.game_menu)
 
-        self.access_key_lbl = Label(self.game_menu, text="", font=("Times New Roman", 16, "bold"))
+        self.access_key_lbl = Label(self.game_menu, text="", font=("Times New Roman", 16, "bold"), bg="white", fg="black")
         self.access_key_lbl.grid(column=0, row=1, columnspan=6)
 
-        self.start_game_lbl = Label(self.game_menu, text="Start game", font=("Times New Roman", 16, "bold"), pady=20)
+        self.start_game_lbl = Label(self.game_menu, text="Start game", font=("Times New Roman", 16, "bold"), pady=20, bg="white", fg="black")
         self.start_game_lbl.grid(column=0, row=2, columnspan=6, sticky="S")
 
         self.start_classic_btn = PrimaryButton(self.game_menu, text="Classic",

@@ -187,15 +187,15 @@ class GameRoomService:
             move = Castling(
                 position_from,
                 position_to,
-                parse_vector(message["rookFrom"]),
-                parse_vector(message["rookTo"])
+                parse_vector(move_dict["rookFrom"]),
+                parse_vector(move_dict["rookTo"])
             )
         elif move_type == MoveType.EN_PASSANT:
-            move = EnPassant(position_from, position_to, parse_vector(message["capturedPosition"]))
+            move = EnPassant(position_from, position_to, parse_vector(move_dict["capturedPosition"]))
         elif move_type == MoveType.PROMOTION:
-            move = Promotion(position_from, position_to, PIECE_TYPES_FROM_CODE[message["pieceType"]])
+            move = Promotion(position_from, position_to, PIECE_TYPES_FROM_CODE[move_dict["pieceType"]])
         else:
-            move = PromotionWithCapturing(position_from, position_to, PIECE_TYPES_FROM_CODE[message["pieceType"]])
+            move = PromotionWithCapturing(position_from, position_to, PIECE_TYPES_FROM_CODE[move_dict["pieceType"]])
 
         if self.room.draw_offer:
             if self.room.draw_offer != self.room.engine.currently_moving_team:
@@ -289,6 +289,8 @@ class GameRoomService:
             "positionTo": move.position_to.coords
         }
 
+        logging.fatal(move.type)
+
         if move.type == MoveType.CASTLING:
             move_dict["rookFrom"] = move.rook_from.coords
             move_dict["rookTo"] = move.rook_to.coords
@@ -298,6 +300,10 @@ class GameRoomService:
             move_dict["pieceType"] = move.piece_type.value
 
         self._connection_manager.send(json.dumps({
+            "code": MessageCode.GAME_MOVE.value,
+            "move": move_dict
+        }))
+        logging.fatal(json.dumps({
             "code": MessageCode.GAME_MOVE.value,
             "move": move_dict
         }))

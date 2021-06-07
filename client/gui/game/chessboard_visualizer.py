@@ -1,3 +1,4 @@
+import logging
 from typing import Optional
 
 import os
@@ -142,7 +143,8 @@ class ChessboardVisualizer:
 
     def handle_promotion_menu_click(self, event: EventType):
         self._promotion_move.piece_type = self.promotion_menu_pieces[event.x // self.piece_size]
-        self.process_promotion()
+        logging.fatal(self._promotion_move.piece_type)
+        self.game_room_service.game_move(self._promotion_move)
 
     def field_coords(self, pos: Vector2d) -> Optional[Vector2d]:
         coords = (pos // self.field_size)
@@ -168,7 +170,11 @@ class ChessboardVisualizer:
             else:
                 move = self.get_move(self._selected_piece, position)
                 if move:
-                    self.move(move)
+                    if move.type == MoveType.PROMOTION or move.type == MoveType.PROMOTION_WITH_CAPTURING:
+                        self._promotion_move = move
+                        self.display_promotion_menu(self.game_room_service.current_team)
+                    else:
+                        self.game_room_service.game_move(move)
                 else:
                     self.clear_available_moves()
                     self._selected_piece = None
@@ -183,28 +189,27 @@ class ChessboardVisualizer:
                 return move
         return None
 
-    def process_promotion(self):
-        self.engine.process_move(self._promotion_move)
+    def process_promotion(self, move: Promotion):
+        if self._promotion_move:
+            self.promotion_menu.destroy()
+            self._promotion_move = None
+
         self.clear_available_moves()
 
-        if self._promotion_move.type == MoveType.PROMOTION:
-            self.remove_piece(self._promotion_move.position_from)
-            self.set_piece(self.engine.board.piece_at(self._promotion_move.position_to))
-        elif self._promotion_move.type == MoveType.PROMOTION_WITH_CAPTURING:
-            self.remove_piece(self._promotion_move.position_to)
-            self.remove_piece(self._promotion_move.position_from)
-            self.set_piece(self.engine.board.piece_at(self._promotion_move.position_to))
+        if move.type == MoveType.PROMOTION:
+            self.remove_piece(move.position_from)
+            self.set_piece(self.engine.board.piece_at(move.position_to))
+        else:
+            self.remove_piece(move.position_to)
+            self.remove_piece(move.position_from)
+            self.set_piece(self.engine.board.piece_at(move.position_to))
 
-        self._promotion_move = None
-        self.table.tkraise()
 
-    def move(self, move: AbstractMove):
-        self.game_room_service.game_move(move)
+        #self.table.tkraise()
 
     def process_move(self, move: AbstractMove):
         if move.type == MoveType.PROMOTION or move.type == MoveType.PROMOTION_WITH_CAPTURING:
-            self._promotion_move = move
-            self.display_promotion_menu(self.game_room_service.current_team)
+            self.process_promotion(move)
             return
 
         self.clear_available_moves()
