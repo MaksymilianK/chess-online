@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import abstractmethod, ABC
-from enum import Enum, auto
+from enum import Enum
 
 from shared.chess_engine.position import Vector2d
 from shared.chess_engine.piece import PieceType
@@ -103,12 +103,6 @@ class Promotion(AbstractMove):
     @property
     def type(self) -> MoveType:
         return MoveType.PROMOTION
-
-    def __eq__(self, other: AbstractMove):
-        return super().__eq__(other) and self.piece_type == other.piece_type
-
-    def __hash__(self):
-        return hash((self.type, self.position_from, self.position_to, self.piece_type))
 
 
 class PromotionWithCapturing(Promotion):

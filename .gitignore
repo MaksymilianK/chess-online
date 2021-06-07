@@ -3,3 +3,4 @@ env
 .pytest-cache
 __pycache__
 db-config.yaml
+client-config.yaml
