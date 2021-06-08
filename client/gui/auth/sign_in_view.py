@@ -38,16 +38,13 @@ class SignInView(View):
         self.email_lbl = FormLabel(self.frame, text="Email")
         self.email_lbl.grid(row=2, column=0, sticky="WS")
 
-        self.em = StringVar(self.frame, "12@12.12")
-        self.pa = StringVar(self.frame, "1234567")
-
-        self.email_entry = FormEntry(self.frame, textvariable=self.em)
+        self.email_entry = FormEntry(self.frame)
         self.email_entry.grid(row=3, column=0, sticky="WEN", columnspan=2)
 
         self.password_lbl = FormLabel(self.frame, text="Password")
         self.password_lbl.grid(row=4, column=0, sticky="WS")
 
-        self.password_entry = FormEntry(self.frame, show="*", textvariable=self.pa)
+        self.password_entry = FormEntry(self.frame, show="*")
         self.password_entry.grid(row=5, column=0, sticky="WEN", columnspan=2)
 
         self.sign_in_btn = PrimaryButton(self.frame, text="Sign in", command=self.sign_in)

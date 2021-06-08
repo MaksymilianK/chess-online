@@ -114,8 +114,6 @@ class GameRoomService:
         return self.room.running
 
     def can_claim_draw(self):
-        logging.fatal(self.room.engine.can_claim_draw())
-        logging.fatal(self.room.engine.move_history.repeated_three_times())
         return self.is_current_moving() and self.room.engine.can_claim_draw()
 
     def can_offer_draw(self):
@@ -124,7 +122,9 @@ class GameRoomService:
     def can_respond_to_draw_offer(self):
         return self.room.draw_offer is not None and self.room.draw_offer != self.room.teams[self._auth_service.current]
 
-    def on_player_disconnected(self):
+    def on_player_disconnected(self, message: dict):
+        player = player_from_dict(message["player"])
+
         if self.room.type == GameRoomType.RANKED:
             players = self.room.players
             if self._auth_service.current == players[0]:
@@ -132,7 +132,10 @@ class GameRoomService:
             else:
                 self._on_ranked_end(players, PlayerScore.LOSS)
         else:
-            self.room.game_result = GameResult(PlayerScore.WIN)
+            if player == self.room.host:
+                self.room.host = None
+            else:
+                self.room.guest = None
 
     def on_create_private_room(self, message: dict):
         self.room = PrivateGameRoom(message["accessKey"], self._auth_service.current)

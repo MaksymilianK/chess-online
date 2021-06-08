@@ -310,19 +310,15 @@ class GameRoomService:
     async def claim_draw(self, _: dict, sender: Player):
         room = self._room_by_player(sender)
         if not room:
-            logging.fatal("claim1")
             return
 
         game_end_status = room.runner.on_draw_claim(sender)
         if not game_end_status:
-            logging.fatal("claim2")
             return
 
-        logging.fatal("claim3")
         if room.type == GameRoomType.RANKED:
             await self._remove_ranked(game_end_status)
 
-        logging.fatal("claim4")
         await room.send(json.dumps({
             "code": MessageCode.GAME_CLAIM_DRAW.value,
             "player": sender.as_response()

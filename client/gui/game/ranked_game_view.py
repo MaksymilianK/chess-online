@@ -91,6 +91,15 @@ class RankedGameView(View):
 
         self.navigate(ViewName.JOIN_RANKED)
 
+    def on_player_disconnected(self, message: dict):
+        self.game_room_service.on_player_disconnected(message)
+        messagebox.showinfo(
+            "Info",
+            f"Your opponent disconnected! You win! {self.display_elo_change(self.room.game_result.current_elo_change)}"
+        )
+
+        self.navigate(ViewName.JOIN_RANKED)
+
     def on_game_offer_draw(self, message: dict):
         self.game_room_service.on_game_offer_draw()
         self.update_menu()

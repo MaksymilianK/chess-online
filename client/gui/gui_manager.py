@@ -144,8 +144,8 @@ class GuiManager:
                 self.views[ViewName.PRIVATE_GAME].on_game_time_end()
             else:
                 self.views[ViewName.RANKED_GAME].on_game_time_end()
-        elif code == MessageCode.PLAYER_DISCONNECTED:
+        elif code == MessageCode.PLAYER_DISCONNECTED.value:
             if self.current_view is self.views[ViewName.PRIVATE_GAME]:
-                self.views[ViewName.PRIVATE_GAME].on_player_disconnected()
+                self.views[ViewName.PRIVATE_GAME].on_player_disconnected(message)
             else:
-                self.views[ViewName.RANKED_GAME].on_player_disconnected()
+                self.views[ViewName.RANKED_GAME].on_player_disconnected(message)

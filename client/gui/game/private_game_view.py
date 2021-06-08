@@ -1,3 +1,4 @@
+import logging
 from typing import Callable, Optional
 
 from tkinter import Tk, Label, messagebox, NORMAL, DISABLED
@@ -184,6 +185,17 @@ class PrivateGameView(View):
         self.host.stop_timer()
         self.guest.stop_timer()
         messagebox.showinfo("Info", "Draw claimed! Nobody wins, nobody loses!")
+
+    def on_player_disconnected(self, message: dict):
+        self.game_room_service.on_player_disconnected(message)
+        if self.game_room_service.room.host:
+            self.update_menu()
+            self.host.reset_all_except_nick()
+            self.guest.reset()
+        else:
+            self.navigate(ViewName.JOIN_PRIVATE)
+            messagebox.showinfo("Info", "The host left the room!")
+
 
     def on_game_move(self, message: dict):
         move = self.game_room_service.on_game_move(message)

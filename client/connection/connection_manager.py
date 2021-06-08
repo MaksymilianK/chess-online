@@ -33,7 +33,7 @@ class ConnectionManager:
                 await websocket.send(message)
 
                 async for message in websocket:
-                    logging.fatal(message)
+                    logging.info(message)
                     self._notify_message(message)
         except ConnectionClosedError as e:
             if e.code == 4000:
