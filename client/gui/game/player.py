@@ -8,7 +8,7 @@ from PIL import Image, ImageTk
 
 class PlayerTeam:
     def __init__(self, master):
-        self.frame = Frame(master)
+        self.frame = Frame(master, bg="white")
         self.frame.columnconfigure(0, weight=1)
         self.frame.columnconfigure(1, weight=1)
         self.frame.rowconfigure(0, weight=1)
@@ -22,13 +22,13 @@ class PlayerTeam:
         self.white_img = ImageTk.PhotoImage(image=white_img)
         self.black_img = ImageTk.PhotoImage(image=black_img)
 
-        self.team_lbl = Label(self.frame, font=("Times New Roman", 20), bg="white", fg="black")
+        self.team_lbl = Label(self.frame, font=("Times New Roman", 15), bg="white", fg="black")
         self.team_lbl.grid(column=0, row=0)
 
-        self.nick_lbl = Label(self.frame, font=("Times New Roman", 20), text="", bg="white", fg="black")
+        self.nick_lbl = Label(self.frame, font=("Times New Roman", 15), text="", bg="white", fg="black")
         self.nick_lbl.grid(column=1, row=0)
 
-        self.timer_lbl = Label(self.frame, font=("Times New Roman", 20), text="", bg="white", fg="black")
+        self.timer_lbl = Label(self.frame, font=("Times New Roman", 12), text="", bg="white", fg="black")
         self.timer_lbl.grid(column=0, row=1, columnspan=2)
 
         self.time: int = 0
@@ -62,6 +62,9 @@ class PlayerTeam:
         self.minutes = left // (1000 * 60)
         left = left - self.minutes * 1000 * 60
         self.seconds = int(math.ceil(left / 1000))
+
+        self.time = time_ms
+        self.update_timer_lbl()
 
     def update_timer_lbl(self):
         hours_str = f"0{self.hours}" if self.hours < 10 else str(self.hours)

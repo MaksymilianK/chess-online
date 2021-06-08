@@ -81,7 +81,7 @@ class ChessEngine:
         else:
             self.board.move(move.position_from, move.position_to)
 
-        self.currently_moving_team = self._currently_opposite_team()
+        self.currently_moving_team = self.currently_opposite_team()
         self.move_history.update(move, self._board_snapshot())
         self._update_check_status()
 
@@ -164,7 +164,7 @@ class ChessEngine:
                         and other_piece.team != self.currently_moving_team:
                     checking_pieces.append(other_piece)
 
-        for move_vector in Pawn.attacks[self._currently_opposite_team()]:
+        for move_vector in Pawn.attacks[self.currently_opposite_team()]:
             other_pos = king_pos - move_vector
             if within_board(other_pos):
                 other_piece = self.board.piece_at(other_pos)
@@ -203,7 +203,7 @@ class ChessEngine:
         if within_board(small_move_pos) and not self._will_move_reveal_king(pawn.position, small_move_pos) \
                 and not self.board.piece_at(small_move_pos):
             if not self.check_status.checked or self._will_move_cover_king(small_move_pos):
-                if pawn.position.y == SECOND_RANK[self._currently_opposite_team()]:
+                if pawn.position.y == SECOND_RANK[self.currently_opposite_team()]:
                     available_moves.append(Promotion(pawn.position, small_move_pos))
                 else:
                     available_moves.append(Move(pawn.position, small_move_pos))
@@ -221,7 +221,7 @@ class ChessEngine:
                 continue
 
             if self.board.piece_at(attack_pos) and self.board.piece_at(attack_pos).team != self.currently_moving_team:
-                if pawn.position.y == SECOND_RANK[self._currently_opposite_team()]:
+                if pawn.position.y == SECOND_RANK[self.currently_opposite_team()]:
                     available_moves.append(PromotionWithCapturing(pawn.position, attack_pos))
                 else:
                     available_moves.append(Capturing(pawn.position, attack_pos))
@@ -317,7 +317,7 @@ class ChessEngine:
 
         return available_moves
 
-    def _currently_opposite_team(self) -> Team:
+    def currently_opposite_team(self) -> Team:
         return Team.WHITE if self.currently_moving_team == Team.BLACK else Team.BLACK
 
     def _current_king_position(self) -> Vector2d:
@@ -353,7 +353,7 @@ class ChessEngine:
 
     def _attacked_fields(self) -> set[Vector2d]:
         attacked_fields: set[Vector2d] = set()
-        opponent_pieces = self.board.pieces[self._currently_opposite_team()]
+        opponent_pieces = self.board.pieces[self.currently_opposite_team()]
 
         for piece in opponent_pieces.pawns:
             for attack_vector in piece.attack_vectors:
@@ -373,7 +373,7 @@ class ChessEngine:
                 while within_board(new_pos):
                     attacked_fields.add(new_pos)
                     piece_at = self.board.piece_at(new_pos)
-                    if piece_at and piece_at.team == self.currently_moving_team and piece_at.type != PieceType.KING:
+                    if piece_at and (piece_at.team != self.currently_moving_team or piece_at.type != PieceType.KING):
                         break
                     new_pos += move_vector
 

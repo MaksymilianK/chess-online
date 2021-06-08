@@ -11,6 +11,7 @@ from client.gui.shared import DisplayBoundary, PrimaryButton, SecondaryButton
 from client.gui.view import View, ViewName
 from shared.chess_engine.piece import Team
 from shared.game.game_type import GameType
+from shared.game.ranking import PlayerScore
 
 
 class PrivateGameView(View):
@@ -109,18 +110,20 @@ class PrivateGameView(View):
     def on_guest_joined_private_room(self, message: dict):
         self.game_room_service.on_guest_joined_private_room(message)
         self.update_menu()
-        self.guest.nick_lbl["text"] = self.room.guest.nick
+        self.guest.nick_lbl["text"] = f"{self.room.guest.nick} (guest)"
 
     def on_leave_private_room(self, message: dict):
         self.game_room_service.on_leave_private_room(message)
         if self.game_room_service.room:
-            self.update_menu()
-            self.host.reset_all_except_nick()
-            self.guest.reset()
+            if self.game_room_service.room.host:
+                self.update_menu()
+                self.host.reset_all_except_nick()
+                self.guest.reset()
+            else:
+                self.navigate(ViewName.JOIN_PRIVATE)
+                messagebox.showinfo("Info", "The host left the room!")
         else:
             self.navigate(ViewName.JOIN_PRIVATE)
-            if message["player"]["nick"] != self.auth_service.current.nick:
-                messagebox.showinfo("Info", "The host left the room!")
 
     def on_kick_from_private_room(self):
         self.game_room_service.on_kick_from_private_room()
@@ -130,19 +133,12 @@ class PrivateGameView(View):
             self.guest.reset()
         else:
             self.navigate(ViewName.JOIN_PRIVATE)
-            messagebox.showinfo("Info", "You was kicked out from the private room!")
+            messagebox.showinfo("Info", "You were kicked out from the private room!")
 
     def on_start_private_game(self, message: dict):
         self.game_room_service.on_start_private_game(message)
         self.update_menu()
         self.chessboard_visualizer.start()
-
-        if self.auth_service.current == self.room.host:
-            self.host.frame.grid(column=0, row=0, columnspan=3, sticky="N")
-            self.guest.frame.grid(column=3, row=0, columnspan=3, sticky="N")
-        else:
-            self.guest.frame.grid(column=0, row=0, columnspan=3, sticky="N")
-            self.host.frame.grid(column=3, row=0, columnspan=3, sticky="N")
 
         if self.room.teams[self.room.host] == Team.WHITE:
             self.host.team_lbl["image"] = self.host.white_img
@@ -161,12 +157,14 @@ class PrivateGameView(View):
             self.guest.start_counting()
 
     def on_game_surrender(self, message: dict):
-        self.game_room_service.on_game_surrender()
+        self.game_room_service.on_game_surrender(message)
         self.update_menu()
         self.host.stop_timer()
         self.guest.stop_timer()
-        if message["player"]["nick"] != self.auth_service.current.nick:
+        if self.game_room_service.room.game_result.current_score == PlayerScore.WIN:
             messagebox.showinfo("Info", "Your opponent surrendered! You win!")
+        else:
+            messagebox.showinfo("Info", "You surrendered!")
 
     def on_game_offer_draw(self, message: dict):
         self.game_room_service.on_game_offer_draw()
@@ -185,27 +183,43 @@ class PrivateGameView(View):
         self.update_menu()
         self.host.stop_timer()
         self.guest.stop_timer()
-        messagebox.showinfo("Info", "It's a draw! Nobody wins, nobody loses!")
+        messagebox.showinfo("Info", "Draw claimed! Nobody wins, nobody loses!")
 
     def on_game_move(self, message: dict):
         move = self.game_room_service.on_game_move(message)
         self.update_menu()
         self.chessboard_visualizer.process_move(move)
+
         if self.room.engine.currently_moving_team == self.room.teams[self.room.host]:
-            self.guest.update_time(self.room.times[self.room.teams[self.room.guest]])
-            self.guest.update_timer_lbl()
-            self.host.start_counting()
+            player = self.guest
+            other = self.host
         else:
-            self.host.update_time(self.room.times[self.room.teams[self.room.host]])
-            self.host.update_timer_lbl()
-            self.guest.start_counting()
+            player = self.host
+            other = self.guest
+
+        player.update_time(self.room.times[self.room.engine.currently_opposite_team()])
+        if self.room.running:
+            other.start_counting()
+        else:
+            if self.room.game_result.current_score == PlayerScore.DRAW:
+                messagebox.showinfo("Info", "It's a draw! Nobody wins, nobody loses!")
+            elif self.room.game_result.current_score == PlayerScore.LOSS:
+                messagebox.showinfo("Info", "Checkmate! You lose!")
+            else:
+                messagebox.showinfo("Info", "Checkmate! You win!")
 
     def on_game_time_end(self):
         self.game_room_service.on_game_time_end()
         self.update_menu()
         self.host.stop_timer()
         self.guest.stop_timer()
-        messagebox.showinfo("Info", "The time is up!")
+
+        if self.room.game_result.current_score == PlayerScore.DRAW:
+            messagebox.showinfo("Info", "The time is up, but it's a draw! Nobody wins, nobody loses!")
+        elif self.room.game_result.current_score == PlayerScore.LOSS:
+            messagebox.showinfo("Info", "The time is up! You lose!")
+        else:
+            messagebox.showinfo("Info", "The time is up! You win!")
 
     def reset(self):
         self.room = None
@@ -222,14 +236,23 @@ class PrivateGameView(View):
         self.accept_draw_btn["state"] = DISABLED
         self.reject_draw_btn["state"] = DISABLED
         self.chessboard_visualizer.reset()
+        self.game_room_service.room = None
 
     def show(self):
         self.room = self.game_room_service.room
         self.access_key_lbl["text"] = f"Access key: {self.room.access_key}"
-        if self.room.host:
-            self.host.nick_lbl["text"] = self.room.host.nick
-        if self.room.guest:
-            self.guest.nick_lbl["text"] = self.room.guest.nick
+
+        if self.auth_service.current == self.room.host:
+            self.host.nick_lbl["text"] = f"{self.room.host.nick} (You, host)"
+            self.host.frame.grid(column=0, row=0, columnspan=3, sticky="N")
+
+            self.guest.frame.grid(column=3, row=0, columnspan=3, sticky="N")
+        else:
+            self.guest.nick_lbl["text"] = f"{self.room.guest.nick} (You, guest)"
+            self.guest.frame.grid(column=0, row=0, columnspan=3, sticky="N")
+
+            self.host.nick_lbl["text"] = f"{self.room.host.nick} (host)"
+            self.host.frame.grid(column=3, row=0, columnspan=3, sticky="N")
 
         self.chessboard_visualizer.table.tkraise()
         self.game_menu.tkraise()

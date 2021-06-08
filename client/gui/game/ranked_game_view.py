@@ -1,15 +1,18 @@
+import logging
 from typing import Callable, Optional
 
 from tkinter import Tk, messagebox, NORMAL, DISABLED
 
 from client.connection.auth_service import AuthService
 from client.connection.game_room_service import GameRoomService, RankedGameRoom
+from client.connection.player import Player
 from client.gui.game.chessboard_visualizer import ChessboardVisualizer
 from client.gui.game.game_menu import game_menu
 from client.gui.game.player import PlayerTeam
 from client.gui.shared import DisplayBoundary, PrimaryButton
 from client.gui.view import View, ViewName
 from shared.chess_engine.piece import Team
+from shared.game.ranking import PlayerScore
 
 
 class RankedGameView(View):
@@ -52,6 +55,9 @@ class RankedGameView(View):
 
         self.reset()
 
+    def display_elo_change(self, elo_change: int):
+        return f"+{elo_change} points" if elo_change > 0 else f"{elo_change} points"
+
     def update_menu(self):
         self.surrender_btn["state"] = NORMAL if self.game_room_service.can_surrender() else DISABLED
         self.claim_draw_btn["state"] = NORMAL if self.game_room_service.can_claim_draw() else DISABLED
@@ -73,10 +79,17 @@ class RankedGameView(View):
         self.game_room_service.game_respond_to_draw_offer(accepted)
 
     def on_game_surrender(self, message: dict):
-        self.game_room_service.on_game_surrender()
+        self.game_room_service.on_game_surrender(message)
+        if self.room.game_result.current_score == PlayerScore.WIN:
+            messagebox.showinfo(
+                "Info",
+                f"Your opponent surrendered! You win! {self.display_elo_change(self.room.game_result.current_elo_change)}"
+            )
+        else:
+            messagebox.showinfo("Info",
+                                f"You surrendered! {self.display_elo_change(self.room.game_result.current_elo_change)}")
+
         self.navigate(ViewName.JOIN_RANKED)
-        if message["player"]["nick"] != self.auth_service.current.nick:
-            messagebox.showinfo("Info", "Your opponent surrendered! You win!")
 
     def on_game_offer_draw(self, message: dict):
         self.game_room_service.on_game_offer_draw()
@@ -86,35 +99,73 @@ class RankedGameView(View):
         self.game_room_service.on_game_respond_to_draw_offer(message)
         self.update_menu()
         if not self.room.running:
+            self.player1.stop_timer()
+            self.player2.stop_timer()
+            messagebox.showinfo("Info",
+                                f"It's a draw! {self.display_elo_change(self.room.game_result.current_elo_change)}")
             self.navigate(ViewName.JOIN_RANKED)
-            messagebox.showinfo("Info", "It's a draw! Nobody wins, nobody loses!")
 
     def on_game_claim_draw(self):
         self.game_room_service.on_game_claim_draw()
+        messagebox.showinfo("Info", f"Draw claimed! {self.display_elo_change(self.room.game_result.current_elo_change)}")
         self.navigate(ViewName.JOIN_RANKED)
-        messagebox.showinfo("Info", "It's a draw! Nobody wins, nobody loses!")
 
     def on_game_move(self, message: dict):
         move = self.game_room_service.on_game_move(message)
         self.update_menu()
         self.chessboard_visualizer.process_move(move)
+
         if self.room.engine.currently_moving_team == self.room.teams[self.auth_service.current]:
-            if self.auth_service.current == self.room.players[0]:
-                self.player2.update_time(self.room.times[self.room.teams[self.room.players[1]]])
-            else:
-                self.player2.update_time(self.room.times[self.room.teams[self.room.players[0]]])
-            self.player2.update_timer_lbl()
-            self.player1.start_counting()
+            player = self.player2
+            other = self.player1
         else:
-            self.player1.update_time(self.room.times[self.room.teams[self.auth_service.current]])
-            self.player1.update_timer_lbl()
-            self.player2.start_counting()
+            player = self.player1
+            other = self.player2
+
+        player.update_time(self.room.times[self.room.engine.currently_opposite_team()])
+        if self.room.running:
+            other.start_counting()
+        else:
+            if self.room.game_result.current_score == PlayerScore.DRAW:
+                messagebox.showinfo("Info",
+                                    f"It's a draw! {self.display_elo_change(self.room.game_result.current_elo_change)}")
+            elif self.room.game_result.current_score == PlayerScore.LOSS:
+                messagebox.showinfo(
+                    "Info",
+                    f"Checkmate! You lose! {self.display_elo_change(self.room.game_result.current_elo_change)}"
+                )
+            else:
+                messagebox.showinfo(
+                    "Info",
+                    f"Checkmate! You win! {self.display_elo_change(self.room.game_result.current_elo_change)}"
+                )
+
+            self.navigate(ViewName.JOIN_RANKED)
 
     def on_game_time_end(self):
         self.game_room_service.on_game_time_end()
         self.update_menu()
+        self.player1.stop_timer()
+        self.player2.stop_timer()
+
+        logging.fatal("game end gui")
+        if self.room.game_result.current_score == PlayerScore.DRAW:
+            messagebox.showinfo(
+                "Info",
+                f"The time is up, but it's a draw! {self.display_elo_change(self.room.game_result.current_elo_change)}"
+            )
+        elif self.room.game_result.current_score == PlayerScore.LOSS:
+            messagebox.showinfo(
+                "Info",
+                f"The time is up! You lose! {self.display_elo_change(self.room.game_result.current_elo_change)}"
+            )
+        else:
+            messagebox.showinfo(
+                "Info",
+                f"The time is up! You win! {self.display_elo_change(self.room.game_result.current_elo_change)}"
+            )
+
         self.navigate(ViewName.JOIN_RANKED)
-        messagebox.showinfo("Info", "The time is up!")
 
     def reset(self):
         self.room = None
@@ -126,15 +177,17 @@ class RankedGameView(View):
         self.accept_draw_btn["state"] = DISABLED
         self.reject_draw_btn["state"] = DISABLED
         self.chessboard_visualizer.reset()
+        self.game_room_service.room = None
 
     def show(self):
         self.room = self.game_room_service.room
 
-        self.player1.nick_lbl["text"] = self.auth_service.current.nick
+        self.player1.nick_lbl["text"] = \
+            f"{self.auth_service.current.nick} (You; {self.auth_service.current.elo[self.room.game_type]})"
         if self.auth_service.current == self.room.players[0]:
-            self.player2.nick_lbl["text"] = self.room.players[1].nick
+            self.player2.nick_lbl["text"] = f"{self.room.players[1].nick} ({self.room.players[1].elo[self.room.game_type]})"
         else:
-            self.player2.nick_lbl["text"] = self.room.players[0].nick
+            self.player2.nick_lbl["text"] = f"{self.room.players[0].nick} ({self.room.players[0].elo[self.room.game_type]})"
 
         self.update_menu()
         self.chessboard_visualizer.start()

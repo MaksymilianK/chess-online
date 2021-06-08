@@ -31,16 +31,18 @@ class JoinRankedView(View):
         self.game_type = tk.StringVar(self.frame, GameType.CLASSIC.value)
 
         self.classic_select = tk.Radiobutton(self.frame, text="Classic", value=GameType.CLASSIC.value,
-                                             variable=self.game_type, bg="#ffffff",
+                                             variable=self.game_type, bg="#ffffff", fg="black",
                                              font=("Times New Roman", 15, "bold"))
         self.classic_select.grid(column=0, row=1)
 
         self.rapid_select = tk.Radiobutton(self.frame, text="Rapid", value=GameType.RAPID.value,
-                                           variable=self.game_type, bg="#ffffff", font=("Times New Roman", 15, "bold"))
+                                           variable=self.game_type, bg="#ffffff", fg="black",
+                                           font=("Times New Roman", 15, "bold"))
         self.rapid_select.grid(column=0, row=2)
 
         self.blitz_select = tk.Radiobutton(self.frame, text="Blitz", value=GameType.BLITZ.value,
-                                           variable=self.game_type, bg="#ffffff", font=("Times New Roman", 15, "bold"))
+                                           variable=self.game_type, bg="#ffffff", fg="black",
+                                           font=("Times New Roman", 15, "bold"))
         self.blitz_select.grid(column=0, row=3)
 
         self.join_btn = PrimaryButton(self.frame, text="Join", command=self.join_ranked_queue)

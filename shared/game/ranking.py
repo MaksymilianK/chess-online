@@ -9,6 +9,15 @@ class PlayerScore(Enum):
     WIN = 1.0
 
 
+def reverse_score(score: PlayerScore) -> PlayerScore:
+    if score == PlayerScore.LOSS:
+        return PlayerScore.WIN
+    elif score == PlayerScore.WIN:
+        return PlayerScore.LOSS
+    else:
+        return score
+
+
 def elo_change(elo1: int, elo2: int, player_score: PlayerScore) -> int:
     """
     Returns change of elo rating of player1.

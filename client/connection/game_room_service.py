@@ -1,4 +1,5 @@
 import json
+import logging
 import re
 from abc import ABC, abstractmethod
 from enum import auto, Enum
@@ -14,6 +15,7 @@ from shared.chess_engine.move import AbstractMove, MoveType, Move, Capturing, Ca
 from shared.chess_engine.piece import Team, PIECE_TYPES_FROM_CODE, TEAMS_BY_NAME
 from shared.chess_engine.position import Vector2d
 from shared.game.game_type import GameType, TIMES, GAME_TYPES_BY_NAME
+from shared.game.ranking import elo_change, PlayerScore, reverse_score
 from shared.message.message_code import MessageCode
 
 
@@ -29,6 +31,12 @@ class GameRoomType(Enum):
     PRIVATE = auto()
 
 
+class GameResult:
+    def __init__(self, current_score: PlayerScore, current_elo_change: int = 0):
+        self.current_score = current_score
+        self.current_elo_change = current_elo_change
+
+
 class GameRoom(ABC):
     def __init__(self):
         self.engine: Optional[ChessEngine] = None
@@ -36,14 +44,24 @@ class GameRoom(ABC):
         self.teams: dict[Player, Team] = {}
         self.times: dict[Team, int] = {}
         self.draw_offer: Optional[Team] = None
+        self.game_result: Optional[GameResult] = None
+        self._players: [Player] = []
 
     @property
-    def running(self):
-        return self.engine is not None
+    def running(self) -> bool:
+        return self.game_result is None and self.engine is not None
+
+    @property
+    def players(self) -> [Player]:
+        if self._players:
+            return self._players
+        else:
+            self._players = [p for p in self.teams]
+            return self._players
 
     @property
     @abstractmethod
-    def type(self):
+    def type(self) -> GameRoomType:
         pass
 
 
@@ -53,9 +71,9 @@ class RankedGameRoom(GameRoom):
         self.game_type = game_type
         self.teams = teams
         self.times = {team: TIMES[game_type] for _, team in teams.items()}
-        self.players = [p for p in self.teams]
         self.engine = ChessEngine()
 
+    @property
     def type(self):
         return GameRoomType.RANKED
 
@@ -67,6 +85,7 @@ class PrivateGameRoom(GameRoom):
         self.host = host
         self.guest = guest
 
+    @property
     def type(self):
         return GameRoomType.PRIVATE
 
@@ -103,6 +122,16 @@ class GameRoomService:
     def can_respond_to_draw_offer(self):
         return self.room.draw_offer is not None and self.room.draw_offer != self.room.teams[self._auth_service.current]
 
+    def on_player_disconnected(self):
+        if self.room.type == GameRoomType.RANKED:
+            players = self.room.players
+            if self._auth_service.current == players[0]:
+                self._on_ranked_end(players, PlayerScore.WIN)
+            else:
+                self._on_ranked_end(players, PlayerScore.LOSS)
+        else:
+            self.room.game_result = GameResult(PlayerScore.WIN)
+
     def on_create_private_room(self, message: dict):
         self.room = PrivateGameRoom(message["accessKey"], self._auth_service.current)
 
@@ -118,30 +147,29 @@ class GameRoomService:
             GAME_TYPES_BY_NAME[message["gameType"]],
             {player_from_dict(p): TEAMS_BY_NAME[t] for t, p in message["teams"].items()}
         )
+        logging.fatal(self.room)
 
     def on_guest_joined_private_room(self, message: dict):
         self.room.guest = player_from_dict(message["guest"])
 
     def on_leave_private_room(self, message: dict):
         player = player_from_dict(message["player"])
-        if self.room.running:
-            self.room.engine = None
 
         if player == self._auth_service.current:
             self.room = None
         elif player == self.room.host:
-            self.room = None
+            self.room.host = None
         else:
             self.room.guest = None
 
     def on_kick_from_private_room(self):
-        self.room.engine = None
         if self.room.guest == self._auth_service.current:
             self.room = None
         else:
             self.room.guest = None
 
     def on_start_private_game(self, message: dict):
+        self.room.game_result = None
         self.room.engine = ChessEngine()
         self.room.game_type = GAME_TYPES_BY_NAME[message["gameType"]]
         self.room.teams = {player_from_dict(p): TEAMS_BY_NAME[t] for t, p in message["teams"].items()}
@@ -150,10 +178,20 @@ class GameRoomService:
             Team.BLACK: TIMES[self.room.game_type]
         }
 
-    def on_game_surrender(self):
-        self.room.engine = None
+    def on_game_surrender(self, message: dict):
+        player = player_from_dict(message["player"])
+
         if self.room.type == GameRoomType.RANKED:
-            self.room = None
+            players = self.room.players
+            if player == players[0]:
+                self._on_ranked_end(self.room.players, PlayerScore.LOSS)
+            else:
+                self._on_ranked_end(self.room.players, PlayerScore.WIN)
+        else:
+            if player == self._auth_service.current:
+                self.room.game_result = GameResult(PlayerScore.LOSS)
+            else:
+                self.room.game_result = GameResult(PlayerScore.WIN)
 
     def on_game_offer_draw(self):
         self.room.draw_offer = self.room.engine.currently_moving_team
@@ -161,14 +199,17 @@ class GameRoomService:
     def on_game_respond_to_draw_offer(self, message: dict):
         self.room.draw_offer = None
         if message["accepted"]:
-            self.room.engine = None
             if self.room.game_type == GameRoomType.RANKED:
-                self.room = None
+                self._on_ranked_end(self.room.players, PlayerScore.DRAW)
+            else:
+                self.room.game_result = GameResult(PlayerScore.DRAW)
 
     def on_game_claim_draw(self):
         self.room.engine = None
         if self.room.type == GameRoomType.RANKED:
-            self.room = None
+            self._on_ranked_end(self.room.players, PlayerScore.DRAW)
+        else:
+            self.room.game_result = GameResult(PlayerScore.DRAW)
 
     def on_game_move(self, message: dict):
         move_dict = message["move"]
@@ -200,21 +241,46 @@ class GameRoomService:
 
         self.room.times[self.room.engine.currently_moving_team] = message["timeLeft"]
         self.room.engine.process_move(move)
-        if self.room.engine.is_checkmate() or self.room.engine.is_tie():
-            self.room.times = {}
-            self.room.teams = {}
-            self.room.engine = None
+        if self.room.engine.is_checkmate():
             if self.room.type == GameRoomType.RANKED:
-                self.room = None
+                players = self.room.players
+                if self.room.teams[players[0]] == self.room.engine.currently_moving_team:
+                    self._on_ranked_end(self.room.players, PlayerScore.LOSS)
+                else:
+                    self._on_ranked_end(self.room.players, PlayerScore.WIN)
+            else:
+                if self.room.teams[self._auth_service.current] == self.room.engine.currently_moving_team:
+                    self.room.game_result = GameResult(PlayerScore.LOSS)
+                else:
+                    self.room.game_result = GameResult(PlayerScore.WIN)
+        elif self.room.engine.is_tie():
+            if self.room.type == GameRoomType.RANKED:
+                self._on_ranked_end(self.room.players, PlayerScore.DRAW)
+            else:
+                self.room.game_result = GameResult(PlayerScore.DRAW)
 
         return move
 
     def on_game_time_end(self):
-        self.room.times[Team.WHITE] = {}
-        self.room.teams = {}
-        self.room.engine = None
         if self.room.type == GameRoomType.RANKED:
-            self.room = None
+            logging.fatal("game end service ranked")
+            if self.room.engine.has_sufficient_material(self.room.engine.currently_opposite_team()):
+                players = self.room.players
+                if self.room.teams[players[0]] == self.room.engine.currently_moving_team:
+                    self._on_ranked_end(self.room.players, PlayerScore.LOSS)
+                else:
+                    self._on_ranked_end(self.room.players, PlayerScore.WIN)
+            else:
+                self._on_ranked_end(self.room.players, PlayerScore.DRAW)
+        else:
+            logging.fatal("game end service private")
+            if self.room.engine.has_sufficient_material(self.room.engine.currently_opposite_team()):
+                if self.room.teams[self._auth_service.current] == self.room.engine.currently_moving_team:
+                    self.room.game_result = GameResult(PlayerScore.LOSS)
+                else:
+                    self.room.game_result = GameResult(PlayerScore.WIN)
+            else:
+                self.room.game_result = GameResult(PlayerScore.DRAW)
 
     def join_ranked_queue(self, game_type: GameType):
         self._connection_manager.send(json.dumps({
@@ -298,3 +364,21 @@ class GameRoomService:
             "code": MessageCode.GAME_MOVE.value,
             "move": move_dict
         }))
+
+    def _on_ranked_end(self, players: [Player], score: PlayerScore):
+        current_elo_change = elo_change(
+            players[0].elo[self.room.game_type],
+            players[1].elo[self.room.game_type],
+            score
+        )
+        logging.fatal(players[0].elo[self.room.game_type])
+        logging.fatal(players[1].elo[self.room.game_type])
+        logging.fatal(current_elo_change)
+
+        if players[0] != self._auth_service.current:
+            current_elo_change = -current_elo_change
+            score = reverse_score(score)
+
+        self._auth_service.current.elo[self.room.game_type] += current_elo_change
+
+        self.room.game_result = GameResult(score, current_elo_change)
