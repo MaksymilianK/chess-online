@@ -114,6 +114,8 @@ class GameRoomService:
         return self.room.running
 
     def can_claim_draw(self):
+        logging.fatal(self.room.engine.can_claim_draw())
+        logging.fatal(self.room.engine.move_history.repeated_three_times())
         return self.is_current_moving() and self.room.engine.can_claim_draw()
 
     def can_offer_draw(self):

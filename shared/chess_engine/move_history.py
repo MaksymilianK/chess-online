@@ -26,9 +26,9 @@ class BoardSnapshot:
 
     def __hash__(self) -> int:
         return hash((
-            ((pos, piece) for pos, piece in self.pieces.items()),
+            tuple((pos, piece) for pos, piece in self.pieces.items()),
             self._currently_moving_team,
-            ((team, right) for team, right in self._castle_rights.items()),
+            tuple((team, right) for team, right in self._castle_rights.items()),
             self._en_passant_available
         ))
 

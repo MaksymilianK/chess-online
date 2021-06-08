@@ -4,44 +4,11 @@ from queue import Queue
 from typing import Callable, Optional
 
 import websockets
-import yaml
-from websockets import ConnectionClosedError, ConnectionClosedOK
-
-
-CONNECTION_CONFIG_FILE = "client-config.yaml"
-
-
-class ConnectionConfig:
-    default = {
-        "host": "localhost",
-        "port": 80
-    }
-
-    def __init__(self):
-        self.host = ""
-        self.port = 0
-
-        try:
-            self._load()
-        except FileNotFoundError:
-            self._save_def()
-
-    def _load(self):
-        with open(CONNECTION_CONFIG_FILE, "r") as file:
-            self._set_cfg(yaml.load(file))
-
-    def _save_def(self):
-        with open(CONNECTION_CONFIG_FILE, "w") as file:
-            yaml.dump(self.default, file)
-            self._set_cfg(self.default)
-
-    def _set_cfg(self, cfg: dict[str, any]):
-        self.host = cfg["host"]
-        self.port = cfg["port"]
+from websockets import ConnectionClosedError
 
 
 class ConnectionManager:
-    def __init__(self, config: ConnectionConfig):
+    def __init__(self, config: dict):
         self.messages: Queue[str] = Queue()
         self._notify_message: Optional[Callable[[str], None]] = None
         self._loop = asyncio.new_event_loop()
@@ -61,7 +28,7 @@ class ConnectionManager:
     async def _connect(self, message: str):
         c = self._config
         try:
-            async with websockets.connect(f"ws://{c.host}:{c.port}") as websocket:
+            async with websockets.connect(f"ws://{c['host']}:{c['port']}") as websocket:
                 self._websocket = websocket
                 await websocket.send(message)
 

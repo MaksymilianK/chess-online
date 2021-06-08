@@ -1,10 +1,11 @@
 import platform
 import threading
 
-from client.connection.connection_manager import ConnectionManager, ConnectionConfig
+from client.connection.connection_manager import ConnectionManager
 from client.connection.game_room_service import GameRoomService
 from client.gui.gui_manager import GuiManager
 from client.connection.auth_service import AuthService
+from shared import yaml_loader
 
 if platform.system() == "Windows":
     # Workaround for getting wrong screen resolution in Windows
@@ -15,11 +16,18 @@ if platform.system() == "Windows":
         ctypes.windll.user32.SetProcessDPIAware()
 
 
+CONFIG_FILE = "client-config.yaml"
+
+
 if __name__ == "__main__":
     print("Client is running!")
 
-    client_config = ConnectionConfig()
-    connection_manager = ConnectionManager(client_config)
+    config = yaml_loader.load(CONFIG_FILE, {
+        "host": "localhost",
+        "port": 80
+    })
+
+    connection_manager = ConnectionManager(config)
     auth_service = AuthService(connection_manager)
     game_room_service = GameRoomService(connection_manager, auth_service)
 

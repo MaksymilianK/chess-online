@@ -2,5 +2,5 @@ env
 .idea
 .pytest-cache
 __pycache__
-db-config.yaml
+server-config.yaml
 client-config.yaml

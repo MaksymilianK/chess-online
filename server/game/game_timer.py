@@ -5,7 +5,7 @@ from typing import Optional, Coroutine, Callable
 
 from shared.chess_engine.piece import Team, opposite_team
 
-FIRST_MOVE_TIME_MS = 5 * 1000
+FIRST_MOVE_TIME_MS = 30 * 1000
 
 
 class GameTimer:

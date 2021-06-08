@@ -1,3 +1,4 @@
+import logging
 import random
 from typing import Optional, Coroutine, Callable
 
@@ -100,6 +101,10 @@ class GameRunner:
     def on_draw_claim(self, player: Player) -> Optional[GameEndStatus]:
         if not self.running or self.teams[player] != self._engine.currently_moving_team \
                 or not self._engine.can_claim_draw():
+            logging.fatal(self.running)
+            logging.fatal(f"{self.teams[player]} {self._engine.currently_moving_team}")
+            logging.fatal(self._engine.can_claim_draw())
+            logging.fatal(self._engine.move_history.repeated_three_times())
             return None
 
         players = list(self.teams.keys())
